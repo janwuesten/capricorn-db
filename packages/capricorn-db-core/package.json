@@ -1,0 +1,27 @@
+{
+  "name": "@janwuesten/capricorn-db-core",
+  "version": "0.1.0",
+  "description": "",
+  "main": "dist/index.js",
+  "type": "module",
+  "scripts": {
+    "build": "tsc && tsc-alias --resolve-full-paths",
+    "lint": "eslint src"
+  },
+  "keywords": [
+    "nosql",
+    "database",
+    "effect",
+    "typescript"
+  ],
+  "author": "Jan Wüsten",
+  "license": "MIT",
+  "devDependencies": {
+    "@janwuesten/eslint-config": "workspace:*",
+    "@types/node": "^25.8.0",
+    "eslint": "^9.0.0",
+    "tsc-alias": "^1.8.17",
+    "typescript": "^6.0.3"
+  },
+  "types": "dist/index.d.ts"
+}
