@@ -172,15 +172,29 @@ export class CapricornDBCollection<T extends CapricornDocument> {
   }
 
   async updateMany(filter: CapricornDBFilter<T>, update: Partial<T>): Promise<void> {
-    const documents = await this.find(filter)
-    for (const document of documents) {
-      const updatedDocument = { ...document, ...update }
-      if ((update as WithCapricornID<T>).id && (update as WithCapricornID<T>).id !== document.id) {
-        throw new Error('Cannot update document id.')
+    const isInsideeTransaction = !!this._capricorn._currentTransaction
+    try {
+      if (!isInsideeTransaction) {
+        await this._capricorn._service.startTransaction()
       }
-      await this._capricorn._service.updateDocument(`
-        UPDATE "${this._databaseTableName}" SET document = jsonb(?) WHERE id = ?
-      `, [JSON.stringify(updatedDocument), document.id])
+      const documents = await this.find(filter)
+      for (const document of documents) {
+        const updatedDocument = { ...document, ...update }
+        if ((update as WithCapricornID<T>).id && (update as WithCapricornID<T>).id !== document.id) {
+          throw new Error('Cannot update document id.')
+        }
+        await this._capricorn._service.updateDocument(`
+          UPDATE "${this._databaseTableName}" SET document = jsonb(?) WHERE id = ?
+        `, [JSON.stringify(updatedDocument), document.id])
+      }
+      if (!isInsideeTransaction) {
+        await this._capricorn._service.commitTransaction()
+      }
+    } catch (error) {
+      if (!isInsideeTransaction) {
+        await this._capricorn._service.rollbackTransaction()
+      }
+      throw error
     }
   }
 
