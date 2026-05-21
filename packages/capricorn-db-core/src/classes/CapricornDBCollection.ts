@@ -157,6 +157,27 @@ export class CapricornDBCollection<T extends CapricornDocument> {
     }
   }
 
+  async updateOne(filter: CapricornDBFilter<T>, update: Partial<T>): Promise<void> {
+    const document = await this.findOne(filter)
+    if (!document) {
+      throw new Error('Document not found for updateOne operation.')
+    }
+    const updatedDocument = { ...document, ...update }
+    await this._capricorn._service.updateDocument(`
+      UPDATE "${this._databaseTableName}" SET document = jsonb(?) WHERE id = ?
+    `, [JSON.stringify(updatedDocument), document.id])
+  }
+
+  async updateMany(filter: CapricornDBFilter<T>, update: Partial<T>): Promise<void> {
+    const documents = await this.find(filter)
+    for (const document of documents) {
+      const updatedDocument = { ...document, ...update }
+      await this._capricorn._service.updateDocument(`
+        UPDATE "${this._databaseTableName}" SET document = jsonb(?) WHERE id = ?
+      `, [JSON.stringify(updatedDocument), document.id])
+    }
+  }
+
   async deleteOne(filter: CapricornDBFilter<T>): Promise<void> {
     if (filter instanceof CapricornDBQuery) {
       const query = filter._getSQLAndParams(true)

@@ -115,6 +115,32 @@ describe('capricorn-db', () => {
     expect(names).toContain('John Doe')
     expect(names).toContain('Bob')
   })
+  it('should update one document', async () => {
+    const collection = capricorn.collection<TestDocument>('test')
+    const insertedDocument = await collection.insertOne({
+      name: 'Inga',
+      age: 19,
+      flags: ['active'],
+      address: { street: '456 Elm St', city: 'Othertown' }
+    })
+    await collection.updateOne({ id: insertedDocument.id }, { age: 20 })
+    const updatedDocument = await collection.findOne({ id: insertedDocument.id })
+    expect(updatedDocument).toBeDefined()
+    expect(updatedDocument?.age).toBe(20)
+  })
+  it('should update many documents', async () => {
+    const collection = capricorn.collection<TestDocument>('test')
+    await collection.insertMany([
+      { name: 'Dave', age: 40, flags: ['inactive'], address: { street: '789 Oak St', city: 'Sometown' } },
+      { name: 'Eve', age: 22, flags: ['active', 'new'], address: { street: '321 Maple St', city: 'Newtown' } }
+    ])
+    await collection.updateMany(where('flags', 'gt', 'inactive'), { flags: ['active'] })
+    const updatedDocuments = await collection.find(where('flags', 'contains', 'active'))
+    expect(updatedDocuments).toBeDefined()
+    const names = updatedDocuments.map((doc) => doc.name)
+    expect(names).toContain('Dave')
+    expect(names).toContain('Eve')
+  })
   it('should work with transactions', async () => {
     const collection = capricorn.collection<TestDocument>('test')
     await capricorn.withTransaction(async () => {
