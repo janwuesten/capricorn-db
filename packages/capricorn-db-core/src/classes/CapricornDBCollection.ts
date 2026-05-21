@@ -162,6 +162,9 @@ export class CapricornDBCollection<T extends CapricornDocument> {
     if (!document) {
       throw new Error('Document not found for updateOne operation.')
     }
+    if ((update as WithCapricornID<T>).id && (update as WithCapricornID<T>).id !== document.id) {
+      throw new Error('Cannot update document id.')
+    }
     const updatedDocument = { ...document, ...update }
     await this._capricorn._service.updateDocument(`
       UPDATE "${this._databaseTableName}" SET document = jsonb(?) WHERE id = ?
@@ -172,6 +175,9 @@ export class CapricornDBCollection<T extends CapricornDocument> {
     const documents = await this.find(filter)
     for (const document of documents) {
       const updatedDocument = { ...document, ...update }
+      if ((update as WithCapricornID<T>).id && (update as WithCapricornID<T>).id !== document.id) {
+        throw new Error('Cannot update document id.')
+      }
       await this._capricorn._service.updateDocument(`
         UPDATE "${this._databaseTableName}" SET document = jsonb(?) WHERE id = ?
       `, [JSON.stringify(updatedDocument), document.id])
