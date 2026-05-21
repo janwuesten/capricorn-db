@@ -93,10 +93,10 @@ export class CapricornDBCollection<T extends CapricornDocument> {
 
   async findOne(filter: CapricornDBFilter<T>): Promise<WithCapricornID<T> | null> {
     if (filter instanceof CapricornDBQuery) {
-      const { sql, params } = filter._getSQLAndParams()
+      const query = filter._getSQLAndParams(true)
       const result = await this._capricorn._service.querySingleDocument<{ id: string, document: string }>(`
-        SELECT id, json(document) as document FROM "${this._databaseTableName}" WHERE ${sql} LIMIT 1
-      `, params)
+        SELECT id, json(document) as document FROM "${this._databaseTableName}" ${query?.sql ?? ''} LIMIT 1
+      `, query?.params ?? [])
       if (!result) {
         return null
       }
@@ -109,26 +109,23 @@ export class CapricornDBCollection<T extends CapricornDocument> {
       if (filter.id) {
         return this.findByID(filter.id)
       }
-      const result = await this._capricorn._service.querySingleDocument<{ id: string, document: string }>(`
-        SELECT id, json(document) as document FROM "${this._databaseTableName}" WHERE ${Object.keys(filter).map((key) => `document->>'${key}' = ?`).join(' AND ')} LIMIT 1
-      `, Object.values(filter))
-      if (!result) {
-        return null
+      const query = new CapricornDBQuery()
+      for (const key in filter) {
+        const value = filter[key as keyof typeof filter]
+        if (value !== undefined) {
+          query.where(key, 'eq', value)
+        }
       }
-      const document = JSON.parse(result.document) as T
-      return {
-        ...document,
-        id: result.id
-      } as WithCapricornID<T>
+      return this.findOne(query)
     }
   }
 
   async find(filter: CapricornDBFilter<T>): Promise<WithCapricornID<T>[]> {
     if (filter instanceof CapricornDBQuery) {
-      const { sql, params } = filter._getSQLAndParams()
+      const query = filter._getSQLAndParams(true)
       const results = await this._capricorn._service.queryMultipleDocuments<{ id: string, document: string }>(`
-        SELECT id, json(document) as document FROM "${this._databaseTableName}" WHERE ${sql}
-      `, params)
+        SELECT id, json(document) as document FROM "${this._databaseTableName}" ${query?.sql ?? ''}
+      `, query?.params ?? [])
       return results.map((result) => {
         const document = JSON.parse(result.document) as T
         return {
@@ -149,25 +146,23 @@ export class CapricornDBCollection<T extends CapricornDocument> {
           } as WithCapricornID<T>
         })
       }
-      const results = await this._capricorn._service.queryMultipleDocuments<{ id: string, document: string }>(`
-        SELECT id, json(document) as document FROM "${this._databaseTableName}" WHERE ${Object.keys(filter).map((key) => `document->>'${key}' = ?`).join(' AND ')}
-      `, Object.values(filter))
-      return results.map((result) => {
-        const document = JSON.parse(result.document) as T
-        return {
-          ...document,
-          id: result.id
-        } as WithCapricornID<T>
-      })
+      const query = new CapricornDBQuery()
+      for (const key in filter) {
+        const value = filter[key as keyof typeof filter]
+        if (value !== undefined) {
+          query.where(key, 'eq', value)
+        }
+      }
+      return this.find(query)
     }
   }
 
   async deleteOne(filter: CapricornDBFilter<T>): Promise<void> {
     if (filter instanceof CapricornDBQuery) {
-      const { sql, params } = filter._getSQLAndParams()
+      const query = filter._getSQLAndParams(true)
       await this._capricorn._service.deleteDocument(`
-        DELETE FROM "${this._databaseTableName}" WHERE ${sql} LIMIT 1
-      `, params)
+        DELETE FROM "${this._databaseTableName}" ${query?.sql ?? ''} LIMIT 1
+      `, query?.params ?? [])
     } else {
       if (filter.id) {
         await this._capricorn._service.deleteDocument(`
@@ -177,19 +172,24 @@ export class CapricornDBCollection<T extends CapricornDocument> {
         if (Object.keys(filter).length === 0) {
           throw new Error('Filter cannot be empty for deleteOne operation.')
         }
-        await this._capricorn._service.deleteDocument(`
-          DELETE FROM "${this._databaseTableName}" WHERE ${Object.keys(filter).map((key) => `document->>'${key}' = ?`).join(' AND ')} LIMIT 1
-        `, Object.values(filter))
+        const query = new CapricornDBQuery()
+        for (const key in filter) {
+          const value = filter[key as keyof typeof filter]
+          if (value !== undefined) {
+            query.where(key, 'eq', value)
+          }
+        }
+        return this.deleteOne(query)
       }
     }
   }
 
   async deleteMany(filter: CapricornDBFilter<T>): Promise<void> {
     if (filter instanceof CapricornDBQuery) {
-      const { sql, params } = filter._getSQLAndParams()
+      const query = filter._getSQLAndParams(true)
       await this._capricorn._service.deleteDocument(`
-        DELETE FROM "${this._databaseTableName}" WHERE ${sql}
-      `, params)
+        DELETE FROM "${this._databaseTableName}" ${query?.sql ?? ''}
+      `, query?.params ?? [])
     } else {
       if (filter.id) {
         await this._capricorn._service.deleteDocument(`
@@ -200,9 +200,14 @@ export class CapricornDBCollection<T extends CapricornDocument> {
           await this._capricorn._service.deleteDocument(`DELETE FROM "${this._databaseTableName}"`)
           return
         }
-        await this._capricorn._service.deleteDocument(`
-          DELETE FROM "${this._databaseTableName}" WHERE ${Object.keys(filter).map((key) => `document->>'${key}' = ?`).join(' AND ')}
-        `, Object.values(filter))
+        const query = new CapricornDBQuery()
+        for (const key in filter) {
+          const value = filter[key as keyof typeof filter]
+          if (value !== undefined) {
+            query.where(key, 'eq', value)
+          }
+        }
+        return this.deleteMany(query)
       }
     }
   }

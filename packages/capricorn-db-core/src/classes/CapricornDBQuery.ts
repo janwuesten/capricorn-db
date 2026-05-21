@@ -30,21 +30,21 @@ export class CapricornDBQuery {
     return this
   }
 
-  public _getSQLAndParams(): { sql: string, params: unknown[] } {
+  public _getSQLAndParams(first: boolean = false): ({ sql: string, params: unknown[] }) | null {
     const sqlParts: string[] = []
     const params: unknown[] = []
     for (const condition of this._conditions) {
       switch (condition.type) {
         case 'and': {
           const _condition = condition as CapricornDBQueryConditionLogical
-          const parts = _condition.queries.map((q) => q._getSQLAndParams())
+          const parts = _condition.queries.map((q) => q._getSQLAndParams()).filter((p): p is { sql: string, params: unknown[] } => p !== null)
           sqlParts.push(parts.map((p) => `(${p.sql})`).join(' AND '))
           params.push(...parts.flatMap((p) => p.params))
           break
         }
         case 'or': {
           const _condition = condition as CapricornDBQueryConditionLogical
-          const parts = _condition.queries.map((q) => q._getSQLAndParams())
+          const parts = _condition.queries.map((q) => q._getSQLAndParams()).filter((p): p is { sql: string, params: unknown[] } => p !== null)
           sqlParts.push(parts.map((p) => `(${p.sql})`).join(' OR '))
           params.push(...parts.flatMap((p) => p.params))
           break
@@ -120,6 +120,15 @@ export class CapricornDBQuery {
           }
           break
         }
+      }
+    }
+    if (sqlParts.length === 0) {
+      return null
+    }
+    if (first) {
+      return {
+        sql: `WHERE ${sqlParts.join(' AND ')}`,
+        params
       }
     }
     return {
