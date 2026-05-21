@@ -1,3 +1,5 @@
+![Capricorn Stack Banner](docs/assets/banner.jpg)
+
 # Capricorn Stack
 
 ## Introduction
