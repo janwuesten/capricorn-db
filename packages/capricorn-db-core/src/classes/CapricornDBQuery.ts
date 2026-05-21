@@ -51,7 +51,7 @@ export class CapricornDBQuery {
         }
         case 'default': {
           const _condition = condition as CapricornDBQueryConditionDefault
-          const field = `document->>'${_condition.field}'`
+          const field = _condition.field == 'id' ? 'id' : `document->>'${_condition.field}'`
           switch (_condition.operator) {
             case 'eq':
               sqlParts.push(`${field} = ?`)
