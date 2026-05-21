@@ -1,8 +1,17 @@
 export * from '@/classes/CapricornDBCoreService'
 export * from '@/classes/CapricornDBCollection'
 export * from '@/classes/CapricornDBQuery'
+export * from '@/classes/CapricornDBTransaction'
 export * from '@/classes/CapricornDB'
+
+export * from '@/types/CapricornDBFilter'
 export * from '@/types/CapricornDocument'
 export * from '@/types/CapricornDocumentID'
 export * from '@/types/CollectionName'
-export * from '@/errors/DocumentAlreadyExistsError'
+
+export * from '@/errors/error'
+export * from '@/errors/collection'
+export * from '@/errors/database'
+export * from '@/errors/document'
+export * from '@/errors/query'
+export * from '@/errors/transaction'

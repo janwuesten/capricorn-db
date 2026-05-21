@@ -4,6 +4,11 @@ import { CapricornDocument } from '@/types/CapricornDocument'
 import { CapricornDocumentID, isValidCapricornDocumentID, WithCapricornID } from '@/types/CapricornDocumentID'
 import { CapricornDBQuery } from './CapricornDBQuery'
 import { CapricornDBFilter } from '@/types/CapricornDBFilter'
+import { DocumentExistsError, DocumentNotFoundError, ImmutableIDUpdateError, InvalidDocumentIDError } from '@/errors/document'
+import { DatabaseError } from '@/errors/database'
+import { InvalidCollectionNameError } from '@/errors/collection'
+import { CapricornDBError } from '@/errors/error'
+import { InvalidQueryError } from '@/errors/query'
 
 export class CapricornDBCollection<T extends CapricornDocument> {
   private _capricorn: CapricornDB
@@ -14,7 +19,7 @@ export class CapricornDBCollection<T extends CapricornDocument> {
 
   constructor(options: { collectionName: CollectionName, capricorn: CapricornDB }) {
     if (!CapricornDBCollection.isValidName(options.collectionName)) {
-      throw new Error(`Invalid collection name: ${options.collectionName}. Collection names can only contain letters, numbers, dots, underscores and hyphens.`)
+      throw new InvalidCollectionNameError(`Invalid collection name: ${options.collectionName}. Collection names can only contain letters, numbers, dots, underscores and hyphens.`)
     }
     this._capricorn = options.capricorn
     this._collectionName = options.collectionName
@@ -27,15 +32,14 @@ export class CapricornDBCollection<T extends CapricornDocument> {
   async insertOne(document: T): Promise<WithCapricornID<T>> {
     await this._createCollection()
     try {
-      let id = await this._capricorn._service.generateDocumentID()
+      let id: string | null = null
       if ((document as WithCapricornID<T>).id) {
-        if (typeof (document as WithCapricornID<T>).id !== 'string') {
-          throw new Error('Document id must be a string.')
-        }
         if (!isValidCapricornDocumentID((document as WithCapricornID<T>).id)) {
-          throw new Error('Document id must be a valid CapricornDocumentID.')
+          throw new InvalidDocumentIDError()
         }
         id = (document as WithCapricornID<T>).id
+      } else {
+        id = await this._capricorn._service.generateDocumentID()
       }
       const documentWithID = { ...document, id } as WithCapricornID<T>
       await this._capricorn._service.insertDocument(`
@@ -43,12 +47,15 @@ export class CapricornDBCollection<T extends CapricornDocument> {
       `, [id, JSON.stringify(document)])
       return documentWithID
     } catch (err) {
+      if (CapricornDBError.isCapricornDBError(err)) {
+        throw err
+      }
       if (err instanceof Error) {
         if (err.message.includes('UNIQUE constraint failed')) {
-          throw new Error('Document with the same id already exists.')
+          throw new DocumentExistsError((document as WithCapricornID<T>).id)
         }
       }
-      throw new Error('Failed to insert document.')
+      throw new DatabaseError('Failed to insert document.')
     }
   }
 
@@ -67,77 +74,83 @@ export class CapricornDBCollection<T extends CapricornDocument> {
         await this._capricorn._service.commitTransaction()
       }
       return addedDocuments
-    } catch (error) {
+    } catch (err) {
+      if (CapricornDBError.isCapricornDBError(err)) {
+        throw err
+      }
       if (!isInsideeTransaction) {
         await this._capricorn._service.rollbackTransaction()
       }
-      throw error instanceof Error ? error : new Error(String(error))
+      throw new DatabaseError('Failed to insert documents.')
     }
   }
 
   async findByID(id: CapricornDocumentID): Promise<WithCapricornID<T> | null> {
     if (!isValidCapricornDocumentID(id)) {
-      throw new Error('Invalid document id.')
+      throw new InvalidDocumentIDError()
     }
-    const result = await this._capricorn._service.querySingleDocument<{ document: string }>(`
-      SELECT json(document) as document FROM "${this._databaseTableName}" WHERE id = ?
-    `, [id])
-    if (!result) {
-      return null
-    }
-    return {
-      ...JSON.parse(result.document),
-      id: id
-    } as WithCapricornID<T>
-  }
-
-  async findOne(filter: CapricornDBFilter<T>): Promise<WithCapricornID<T> | null> {
-    if (filter instanceof CapricornDBQuery) {
-      const query = filter._getSQLAndParams(true)
-      const result = await this._capricorn._service.querySingleDocument<{ id: string, document: string }>(`
-        SELECT id, json(document) as document FROM "${this._databaseTableName}" ${query?.sql ?? ''} LIMIT 1
-      `, query?.params ?? [])
+    try {
+      const result = await this._capricorn._service.querySingleDocument<{ document: string }>(`
+        SELECT json(document) as document FROM "${this._databaseTableName}" WHERE id = ?
+      `, [id])
       if (!result) {
         return null
       }
-      const document = JSON.parse(result.document) as T
       return {
-        ...document,
-        id: result.id
+        ...JSON.parse(result.document),
+        id: id
       } as WithCapricornID<T>
-    } else {
-      if (filter.id) {
-        return this.findByID(filter.id)
+    } catch (err) {
+      if (CapricornDBError.isCapricornDBError(err)) {
+        throw err
       }
-      const query = new CapricornDBQuery()
-      for (const key in filter) {
-        const value = filter[key as keyof typeof filter]
-        if (value !== undefined) {
-          query.where(key, 'eq', value)
-        }
-      }
-      return this.findOne(query)
+      throw new DatabaseError('Failed to find document by ID.')
     }
   }
 
-  async find(filter: CapricornDBFilter<T>): Promise<WithCapricornID<T>[]> {
-    if (filter instanceof CapricornDBQuery) {
-      const query = filter._getSQLAndParams(true)
-      const results = await this._capricorn._service.queryMultipleDocuments<{ id: string, document: string }>(`
-        SELECT id, json(document) as document FROM "${this._databaseTableName}" ${query?.sql ?? ''}
-      `, query?.params ?? [])
-      return results.map((result) => {
+  async findOne(filter: CapricornDBFilter<T>): Promise<WithCapricornID<T> | null> {
+    try {
+      if (filter instanceof CapricornDBQuery) {
+        const query = filter._getSQLAndParams(true)
+        const result = await this._capricorn._service.querySingleDocument<{ id: string, document: string }>(`
+          SELECT id, json(document) as document FROM "${this._databaseTableName}" ${query?.sql ?? ''} LIMIT 1
+        `, query?.params ?? [])
+        if (!result) {
+          return null
+        }
         const document = JSON.parse(result.document) as T
         return {
           ...document,
           id: result.id
         } as WithCapricornID<T>
-      })
-    } else {
-      if (Object.keys(filter).length === 0) {
+      } else {
+        if (filter.id) {
+          return this.findByID(filter.id)
+        }
+        const query = new CapricornDBQuery()
+        for (const key in filter) {
+          const value = filter[key as keyof typeof filter]
+          if (value !== undefined) {
+            query.where(key, 'eq', value)
+          }
+        }
+        return this.findOne(query)
+      }
+    } catch (err) {
+      if (CapricornDBError.isCapricornDBError(err)) {
+        throw err
+      }
+      throw new DatabaseError('Failed to find document.')
+    }
+  }
+
+  async find(filter: CapricornDBFilter<T>): Promise<WithCapricornID<T>[]> {
+    try {
+      if (filter instanceof CapricornDBQuery) {
+        const query = filter._getSQLAndParams(true)
         const results = await this._capricorn._service.queryMultipleDocuments<{ id: string, document: string }>(`
-          SELECT id, json(document) as document FROM "${this._databaseTableName}"
-        `)
+          SELECT id, json(document) as document FROM "${this._databaseTableName}" ${query?.sql ?? ''}
+        `, query?.params ?? [])
         return results.map((result) => {
           const document = JSON.parse(result.document) as T
           return {
@@ -145,30 +158,55 @@ export class CapricornDBCollection<T extends CapricornDocument> {
             id: result.id
           } as WithCapricornID<T>
         })
-      }
-      const query = new CapricornDBQuery()
-      for (const key in filter) {
-        const value = filter[key as keyof typeof filter]
-        if (value !== undefined) {
-          query.where(key, 'eq', value)
+      } else {
+        if (Object.keys(filter).length === 0) {
+          const results = await this._capricorn._service.queryMultipleDocuments<{ id: string, document: string }>(`
+            SELECT id, json(document) as document FROM "${this._databaseTableName}"
+          `)
+          return results.map((result) => {
+            const document = JSON.parse(result.document) as T
+            return {
+              ...document,
+              id: result.id
+            } as WithCapricornID<T>
+          })
         }
+        const query = new CapricornDBQuery()
+        for (const key in filter) {
+          const value = filter[key as keyof typeof filter]
+          if (value !== undefined) {
+            query.where(key, 'eq', value)
+          }
+        }
+        return this.find(query)
       }
-      return this.find(query)
+    } catch (err) {
+      if (CapricornDBError.isCapricornDBError(err)) {
+        throw err
+      }
+      throw new DatabaseError('Failed to find documents.')
     }
   }
 
   async updateOne(filter: CapricornDBFilter<T>, update: Partial<T>): Promise<void> {
-    const document = await this.findOne(filter)
-    if (!document) {
-      throw new Error('Document not found for updateOne operation.')
+    try {
+      const document = await this.findOne(filter)
+      if (!document) {
+        throw new DocumentNotFoundError((filter as WithCapricornID<T>).id ?? 'unknown')
+      }
+      if ((update as WithCapricornID<T>).id && (update as WithCapricornID<T>).id !== document.id) {
+        throw new ImmutableIDUpdateError()
+      }
+      const updatedDocument = { ...document, ...update }
+      await this._capricorn._service.updateDocument(`
+        UPDATE "${this._databaseTableName}" SET document = jsonb(?) WHERE id = ?
+      `, [JSON.stringify(updatedDocument), document.id])
+    } catch (err) {
+      if (CapricornDBError.isCapricornDBError(err)) {
+        throw err
+      }
+      throw new DatabaseError('Failed to update document.')
     }
-    if ((update as WithCapricornID<T>).id && (update as WithCapricornID<T>).id !== document.id) {
-      throw new Error('Cannot update document id.')
-    }
-    const updatedDocument = { ...document, ...update }
-    await this._capricorn._service.updateDocument(`
-      UPDATE "${this._databaseTableName}" SET document = jsonb(?) WHERE id = ?
-    `, [JSON.stringify(updatedDocument), document.id])
   }
 
   async updateMany(filter: CapricornDBFilter<T>, update: Partial<T>): Promise<void> {
@@ -181,7 +219,7 @@ export class CapricornDBCollection<T extends CapricornDocument> {
       for (const document of documents) {
         const updatedDocument = { ...document, ...update }
         if ((update as WithCapricornID<T>).id && (update as WithCapricornID<T>).id !== document.id) {
-          throw new Error('Cannot update document id.')
+          throw new ImmutableIDUpdateError()
         }
         await this._capricorn._service.updateDocument(`
           UPDATE "${this._databaseTableName}" SET document = jsonb(?) WHERE id = ?
@@ -191,65 +229,82 @@ export class CapricornDBCollection<T extends CapricornDocument> {
         await this._capricorn._service.commitTransaction()
       }
     } catch (error) {
+      if (CapricornDBError.isCapricornDBError(error)) {
+        throw error
+      }
       if (!isInsideeTransaction) {
         await this._capricorn._service.rollbackTransaction()
       }
-      throw error
+      throw new DatabaseError('Failed to update documents.')
     }
   }
 
   async deleteOne(filter: CapricornDBFilter<T>): Promise<void> {
-    if (filter instanceof CapricornDBQuery) {
-      const query = filter._getSQLAndParams(true)
-      await this._capricorn._service.deleteDocument(`
-        DELETE FROM "${this._databaseTableName}" ${query?.sql ?? ''} LIMIT 1
-      `, query?.params ?? [])
-    } else {
-      if (filter.id) {
+    try {
+      if (filter instanceof CapricornDBQuery) {
+        const query = filter._getSQLAndParams(true)
         await this._capricorn._service.deleteDocument(`
-          DELETE FROM "${this._databaseTableName}" WHERE id = ? LIMIT 1
-        `, [filter.id])
+          DELETE FROM "${this._databaseTableName}" ${query?.sql ?? ''} LIMIT 1
+        `, query?.params ?? [])
       } else {
-        if (Object.keys(filter).length === 0) {
-          throw new Error('Filter cannot be empty for deleteOne operation.')
-        }
-        const query = new CapricornDBQuery()
-        for (const key in filter) {
-          const value = filter[key as keyof typeof filter]
-          if (value !== undefined) {
-            query.where(key, 'eq', value)
+        if (filter.id) {
+          await this._capricorn._service.deleteDocument(`
+            DELETE FROM "${this._databaseTableName}" WHERE id = ? LIMIT 1
+          `, [filter.id])
+        } else {
+          if (Object.keys(filter).length === 0) {
+            throw new InvalidQueryError('Filter cannot be empty for deleteOne operation.')
           }
+          const query = new CapricornDBQuery()
+          for (const key in filter) {
+            const value = filter[key as keyof typeof filter]
+            if (value !== undefined) {
+              query.where(key, 'eq', value)
+            }
+          }
+          return this.deleteOne(query)
         }
-        return this.deleteOne(query)
       }
+    } catch (err) {
+      if (CapricornDBError.isCapricornDBError(err)) {
+        throw err
+      }
+      throw new DatabaseError('Failed to delete document.')
     }
   }
 
   async deleteMany(filter: CapricornDBFilter<T>): Promise<void> {
-    if (filter instanceof CapricornDBQuery) {
-      const query = filter._getSQLAndParams(true)
-      await this._capricorn._service.deleteDocument(`
-        DELETE FROM "${this._databaseTableName}" ${query?.sql ?? ''}
-      `, query?.params ?? [])
-    } else {
-      if (filter.id) {
+    try {
+      if (filter instanceof CapricornDBQuery) {
+        const query = filter._getSQLAndParams(true)
         await this._capricorn._service.deleteDocument(`
-          DELETE FROM "${this._databaseTableName}" WHERE id = ?
-        `, [filter.id])
+          DELETE FROM "${this._databaseTableName}" ${query?.sql ?? ''}
+        `, query?.params ?? [])
       } else {
-        if (Object.keys(filter).length === 0) {
-          await this._capricorn._service.deleteDocument(`DELETE FROM "${this._databaseTableName}"`)
-          return
-        }
-        const query = new CapricornDBQuery()
-        for (const key in filter) {
-          const value = filter[key as keyof typeof filter]
-          if (value !== undefined) {
-            query.where(key, 'eq', value)
+        if (filter.id) {
+          await this._capricorn._service.deleteDocument(`
+            DELETE FROM "${this._databaseTableName}" WHERE id = ?
+          `, [filter.id])
+        } else {
+          if (Object.keys(filter).length === 0) {
+            await this._capricorn._service.deleteDocument(`DELETE FROM "${this._databaseTableName}"`)
+            return
           }
+          const query = new CapricornDBQuery()
+          for (const key in filter) {
+            const value = filter[key as keyof typeof filter]
+            if (value !== undefined) {
+              query.where(key, 'eq', value)
+            }
+          }
+          return this.deleteMany(query)
         }
-        return this.deleteMany(query)
       }
+    } catch (err) {
+      if (CapricornDBError.isCapricornDBError(err)) {
+        throw err
+      }
+      throw new DatabaseError('Failed to delete documents.')
     }
   }
 
@@ -262,7 +317,14 @@ export class CapricornDBCollection<T extends CapricornDocument> {
     if (this._collectionExists()) {
       return
     }
-    await this._capricorn._service.performQuery(`CREATE TABLE IF NOT EXISTS "${this._databaseTableName}" (id TEXT PRIMARY KEY, document BLOB)`)
-    this._capricorn._collections.push(this._collectionName)
+    try {
+      await this._capricorn._service.performQuery(`CREATE TABLE IF NOT EXISTS "${this._databaseTableName}" (id TEXT PRIMARY KEY, document BLOB)`)
+      this._capricorn._collections.push(this._collectionName)
+    } catch (err) {
+      if (CapricornDBError.isCapricornDBError(err)) {
+        throw err
+      }
+      throw new DatabaseError('Failed to create collection.')
+    }
   }
 }

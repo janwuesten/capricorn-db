@@ -1,4 +1,6 @@
+import { PendingTransactionError } from '@/errors/transaction'
 import { CapricornDB } from './CapricornDB'
+import { CapricornDBError } from '@/errors/error'
 
 export type CapricornDBTransactionCallback = () => Promise<void>
 export class CapricornDBTransaction {
@@ -13,7 +15,7 @@ export class CapricornDBTransaction {
   /** @internal */
   public async execute(): Promise<void> {
     if (this._capricorn._currentTransaction) {
-      throw new Error('A transaction is already in progress. Nested transactions are not supported.')
+      throw new PendingTransactionError()
     }
     this._capricorn._currentTransaction = this
     try {
@@ -22,6 +24,9 @@ export class CapricornDBTransaction {
       await this._capricorn._service.commitTransaction()
     } catch (error) {
       await this._capricorn._service.rollbackTransaction()
+      if (CapricornDBError.isCapricornDBError(error)) {
+        throw error
+      }
       throw error instanceof Error ? error : new Error(String(error))
     } finally {
       this._capricorn._currentTransaction = null
