@@ -25,7 +25,7 @@ export class CapricornDB<Service extends CapricornDBCoreService = CapricornDBCor
       const capricorn = new CapricornDB(options.service)
       const tables = await capricorn.service.listTables()
       if (!tables.includes('capricorn')) {
-        await capricorn.service.performQuery(`
+        await capricorn.service.execute(`
           CREATE TABLE "capricorn" (
             key TEXT,
             value BLOB,
@@ -51,7 +51,7 @@ export class CapricornDB<Service extends CapricornDBCoreService = CapricornDBCor
 
   public async setCapricornValue(key: string, value: Record<string, unknown>): Promise<void> {
     try {
-      await this.service.performQuery(`
+      await this.service.execute(`
         INSERT INTO "capricorn" (key, value) VALUES (?, jsonb(?))
         ON CONFLICT(key) DO UPDATE SET value=excluded.value
       `, [key, JSON.stringify(value)])
@@ -62,7 +62,7 @@ export class CapricornDB<Service extends CapricornDBCoreService = CapricornDBCor
 
   public async getCapricornValue<T extends Record<string, unknown>>(key: string): Promise<T | null> {
     try {
-      const result = await this.service.querySingleDocument<{ value: string }>(`
+      const result = await this.service.querySingle<{ value: string }>(`
         SELECT json(value) FROM "capricorn" WHERE key = ?
       `, [key])
       if (!result) {

@@ -39,14 +39,14 @@ export class CapricornDBService extends CapricornDBCoreService {
       throw new Error(error instanceof Error ? error.message : String(error))
     }
   }
-  public async performQuery(query: string, params: SQLInputValue[] = []): Promise<void> {
+  public async execute(query: string, params: SQLInputValue[] = []): Promise<void> {
     try {
       this.database.prepare(query).run(...params)
     } catch (error) {
       throw new Error(error instanceof Error ? error.message : String(error))
     }
   }
-  public async insertDocument(query: string, params?: SQLInputValue[]): Promise<CapricornDocumentID> {
+  public async insert(query: string, params?: SQLInputValue[]): Promise<CapricornDocumentID> {
     try {
       const result = this.database.prepare(query).run(...(params || []))
       return result.lastInsertRowid.toString()
@@ -54,21 +54,21 @@ export class CapricornDBService extends CapricornDBCoreService {
       throw new Error(error instanceof Error ? error.message : String(error))
     }
   }
-  public async deleteDocument(query: string, params?: SQLInputValue[]): Promise<void> {
+  public async delete(query: string, params?: SQLInputValue[]): Promise<void> {
     try {
       this.database.prepare(query).run(...(params || []))
     } catch (error) {
       throw new Error(error instanceof Error ? error.message : String(error))
     }
   }
-  public async updateDocument(query: string, params?: SQLInputValue[]): Promise<void> {
+  public async update(query: string, params?: SQLInputValue[]): Promise<void> {
     try {
       this.database.prepare(query).run(...(params || []))
     } catch (error) {
       throw new Error(error instanceof Error ? error.message : String(error))
     }
   }
-  public async queryMultipleDocuments<T>(query: string, params?: SQLInputValue[]): Promise<T[]> {
+  public async queryMultiple<T>(query: string, params?: SQLInputValue[]): Promise<T[]> {
     try {
       const result = this.database.prepare(query).all(...(params || []))
       return result as T[]
@@ -76,7 +76,7 @@ export class CapricornDBService extends CapricornDBCoreService {
       throw new Error(error instanceof Error ? error.message : String(error))
     }
   }
-  public async querySingleDocument<T>(query: string, params?: SQLInputValue[]): Promise<T | null> {
+  public async querySingle<T>(query: string, params?: SQLInputValue[]): Promise<T | null> {
     try {
       const result = this.database.prepare(query).get(...(params || []))
       return (result as T) || null
