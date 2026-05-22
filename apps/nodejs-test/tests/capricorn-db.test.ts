@@ -1,4 +1,4 @@
-import { and, CapricornDB, getCapricorn, or, where, WithCapricornID } from '@janwuesten/capricorn-db-nodejs'
+import { and, CapricornDB, getCapricornDB, or, where, WithCapricornID } from '@janwuesten/capricorn-db-nodejs'
 
 interface TestDocument {
   name: string
@@ -16,7 +16,7 @@ interface TestDocumentForSpeed {
 describe('capricorn-db', () => {
   let capricorn: CapricornDB
   it('should create a capricorn instance', async () => {
-    capricorn = await getCapricorn({
+    capricorn = await getCapricornDB({
       databasePath: ':memory:'
     })
     expect(capricorn).toBeDefined()
