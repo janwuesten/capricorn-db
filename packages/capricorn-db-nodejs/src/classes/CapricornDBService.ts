@@ -9,21 +9,21 @@ export class CapricornDBService extends CapricornDBCoreService {
     super()
     this.database = database
   }
-  async startTransaction(): Promise<void> {
+  public async startTransaction(): Promise<void> {
     try {
       this.database.prepare('BEGIN TRANSACTION').run()
     } catch (error) {
       throw new Error(error instanceof Error ? error.message : String(error))
     }
   }
-  async commitTransaction(): Promise<void> {
+  public async commitTransaction(): Promise<void> {
     try {
       this.database.prepare('COMMIT').run()
     } catch (error) {
       throw new Error(error instanceof Error ? error.message : String(error))
     }
   }
-  async rollbackTransaction(): Promise<void> {
+  public async rollbackTransaction(): Promise<void> {
     try {
       this.database.prepare('ROLLBACK').run()
       /* eslint-disable no-empty */
@@ -31,7 +31,7 @@ export class CapricornDBService extends CapricornDBCoreService {
 
     }
   }
-  async listTables(): Promise<string[]> {
+  public async listTables(): Promise<string[]> {
     try {
       const result = this.database.prepare('SELECT name FROM sqlite_master WHERE type=\'table\'').all()
       return result.map((row) => row.name?.toString() || '')
@@ -39,14 +39,14 @@ export class CapricornDBService extends CapricornDBCoreService {
       throw new Error(error instanceof Error ? error.message : String(error))
     }
   }
-  async performQuery(query: string, params: SQLInputValue[] = []): Promise<void> {
+  public async performQuery(query: string, params: SQLInputValue[] = []): Promise<void> {
     try {
       this.database.prepare(query).run(...params)
     } catch (error) {
       throw new Error(error instanceof Error ? error.message : String(error))
     }
   }
-  async insertDocument(query: string, params?: SQLInputValue[]): Promise<CapricornDocumentID> {
+  public async insertDocument(query: string, params?: SQLInputValue[]): Promise<CapricornDocumentID> {
     try {
       const result = this.database.prepare(query).run(...(params || []))
       return result.lastInsertRowid.toString()
@@ -54,21 +54,21 @@ export class CapricornDBService extends CapricornDBCoreService {
       throw new Error(error instanceof Error ? error.message : String(error))
     }
   }
-  async deleteDocument(query: string, params?: SQLInputValue[]): Promise<void> {
+  public async deleteDocument(query: string, params?: SQLInputValue[]): Promise<void> {
     try {
       this.database.prepare(query).run(...(params || []))
     } catch (error) {
       throw new Error(error instanceof Error ? error.message : String(error))
     }
   }
-  async updateDocument(query: string, params?: SQLInputValue[]): Promise<void> {
+  public async updateDocument(query: string, params?: SQLInputValue[]): Promise<void> {
     try {
       this.database.prepare(query).run(...(params || []))
     } catch (error) {
       throw new Error(error instanceof Error ? error.message : String(error))
     }
   }
-  async queryMultipleDocuments<T>(query: string, params?: SQLInputValue[]): Promise<T[]> {
+  public async queryMultipleDocuments<T>(query: string, params?: SQLInputValue[]): Promise<T[]> {
     try {
       const result = this.database.prepare(query).all(...(params || []))
       return result as T[]
@@ -76,7 +76,7 @@ export class CapricornDBService extends CapricornDBCoreService {
       throw new Error(error instanceof Error ? error.message : String(error))
     }
   }
-  async querySingleDocument<T>(query: string, params?: SQLInputValue[]): Promise<T | null> {
+  public async querySingleDocument<T>(query: string, params?: SQLInputValue[]): Promise<T | null> {
     try {
       const result = this.database.prepare(query).get(...(params || []))
       return (result as T) || null
@@ -84,7 +84,7 @@ export class CapricornDBService extends CapricornDBCoreService {
       throw new Error(error instanceof Error ? error.message : String(error))
     }
   }
-  async generateDocumentID(): Promise<CapricornDocumentID> {
+  public async generateDocumentID(): Promise<CapricornDocumentID> {
     const ts = Math.floor(Date.now() / 1000).toString(16)
     const random = randomBytes(8).toString('hex')
     return ts + random
