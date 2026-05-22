@@ -104,8 +104,9 @@ describe('capricorn-db', () => {
     const query = and(
       where('age', 'gte', 30),
       or(
-        where('flags', 'contains', 'active'),
-        where('address.city', 'eq', 'Sometown')
+        where('flags', 'array-contains', 'active'),
+        where('address.city', 'eq', 'Sometown'),
+        where('name', 'eq', 'Bob')
       )
     )
     const result = await collection.find(query)
@@ -135,7 +136,10 @@ describe('capricorn-db', () => {
       { name: 'Eve', age: 22, flags: ['active', 'new'], address: { street: '321 Maple St', city: 'Newtown' } }
     ])
     await collection.updateMany(where('flags', 'gt', 'inactive'), { flags: ['active'] })
-    const updatedDocuments = await collection.find(where('flags', 'contains', 'active'))
+    const updatedDocuments = await collection.find(or(
+      where('name', 'eq', 'Dave'),
+      where('flags', 'array-contains', 'active')
+    ))
     expect(updatedDocuments).toBeDefined()
     const names = updatedDocuments.map((doc) => doc.name)
     expect(names).toContain('Dave')

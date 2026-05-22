@@ -1,17 +1,5 @@
-export type CapricornDBQueryOperator = 'eq' | 'ne' | 'gt' | 'gte' | 'lt' | 'lte' | 'in' | 'nin' | 'contains' | 'startsWith' | 'endsWith' | 'contains-case-sensitive' | 'startsWith-case-sensitive' | 'endsWith-case-sensitive' | 'exists' | 'not-exists'
-interface CapricornDBQueryCondition {
-  type: 'default' | 'and' | 'or'
-}
-interface CapricornDBQueryConditionDefault extends CapricornDBQueryCondition {
-  type: 'default'
-  field: string
-  operator: CapricornDBQueryOperator
-  value: unknown
-}
-interface CapricornDBQueryConditionLogical extends CapricornDBQueryCondition {
-  type: 'and' | 'or'
-  queries: CapricornDBQuery[]
-}
+import { CapricornDBQueryCondition, CapricornDBQueryConditionDefault, CapricornDBQueryConditionLogical, CapricornDBQueryOperator } from '@/interfaces/CapricornDBQueryCondition'
+
 export class CapricornDBQuery {
   private _conditions: CapricornDBQueryCondition[] = []
 
@@ -90,11 +78,11 @@ export class CapricornDBQuery {
               sqlParts.push(`${field} LIKE ?`)
               params.push(`%${_condition.value}%`)
               break
-            case 'startsWith':
+            case 'starts-with':
               sqlParts.push(`${field} LIKE ?`)
               params.push(`${_condition.value}%`)
               break
-            case 'endsWith':
+            case 'ends-with':
               sqlParts.push(`${field} LIKE ?`)
               params.push(`%${_condition.value}`)
               break
@@ -102,11 +90,11 @@ export class CapricornDBQuery {
               sqlParts.push(`${field} GLOB ?`)
               params.push(`*${_condition.value}*`)
               break
-            case 'startsWith-case-sensitive':
+            case 'starts-with-case-sensitive':
               sqlParts.push(`${field} GLOB ?`)
               params.push(`${_condition.value}*`)
               break
-            case 'endsWith-case-sensitive':
+            case 'ends-with-case-sensitive':
               sqlParts.push(`${field} GLOB ?`)
               params.push(`*${_condition.value}`)
               break
@@ -117,6 +105,22 @@ export class CapricornDBQuery {
             case 'not-exists':
               sqlParts.push(`${field} IS NULL`)
               params.push(_condition.field)
+              break
+            case 'array-contains':
+              sqlParts.push(`EXISTS (SELECT 1 FROM json_each(${field}) WHERE value = ?)`)
+              params.push(_condition.value)
+              break
+            case 'array-contains-any':
+              sqlParts.push(`EXISTS (SELECT 1 FROM json_each(${field}) WHERE value IN (${(_condition.value as unknown[]).map(() => '?').join(',')}))`)
+              params.push(...(_condition.value as unknown[]))
+              break
+            case 'array-not-contains':
+              sqlParts.push(`NOT EXISTS (SELECT 1 FROM json_each(${field}) WHERE value = ?)`)
+              params.push(_condition.value)
+              break
+            case 'array-not-contains-any':
+              sqlParts.push(`NOT EXISTS (SELECT 1 FROM json_each(${field}) WHERE value IN (${(_condition.value as unknown[]).map(() => '?').join(',')}))`)
+              params.push(...(_condition.value as unknown[]))
               break
           }
           break
