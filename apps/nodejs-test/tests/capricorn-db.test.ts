@@ -101,7 +101,7 @@ describe('capricorn-db', () => {
   })
   it('should find documents by complex query', async () => {
     const collection = capricorn.collection<TestDocument>('test')
-    const query = and(
+    const query = collection.createQuery(
       where('age', 'gte', 30),
       or(
         where('flags', 'array-contains', 'active'),
@@ -109,6 +109,7 @@ describe('capricorn-db', () => {
         where('name', 'eq', 'Bob')
       )
     )
+    
     const result = await collection.find(query)
     expect(result).toBeDefined()
     expect(result.length).toBe(2)
@@ -135,10 +136,12 @@ describe('capricorn-db', () => {
       { name: 'Dave', age: 40, flags: ['inactive'], address: { street: '789 Oak St', city: 'Sometown' } },
       { name: 'Eve', age: 22, flags: ['active', 'new'], address: { street: '321 Maple St', city: 'Newtown' } }
     ])
-    await collection.updateMany(where('flags', 'gt', 'inactive'), { flags: ['active'] })
-    const updatedDocuments = await collection.find(or(
-      where('name', 'eq', 'Dave'),
-      where('flags', 'array-contains', 'active')
+    await collection.updateMany(collection.createQuery(where('flags', 'gt', 'inactive')), { flags: ['active'] })
+    const updatedDocuments = await collection.find(collection.createQuery(
+      or(
+        where('name', 'eq', 'Dave'),
+        where('flags', 'array-contains', 'active')
+      )
     ))
     expect(updatedDocuments).toBeDefined()
     const names = updatedDocuments.map((doc) => doc.name)
@@ -212,7 +215,7 @@ describe('capricorn-db', () => {
   })
   it('should handle a complex query inside a large collection in under 10ms', async () => {
     const collection = capricorn.collection<TestDocumentForSpeed>('speedtest')
-    const query = or(
+    const query = collection.createQuery(or(
       and(
         where('number', 'gte', 9990),
         where('number', 'lte', 9999)
@@ -221,7 +224,7 @@ describe('capricorn-db', () => {
         where('number', 'gte', 0),
         where('number', 'lte', 999)
       )
-    )
+    ))
     const startTime = Date.now()
     const result = await collection.find(query)
     const endTime = Date.now()

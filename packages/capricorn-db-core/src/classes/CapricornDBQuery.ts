@@ -1,20 +1,25 @@
 import { CapricornDBQueryCondition, CapricornDBQueryConditionDefault, CapricornDBQueryConditionLogical, CapricornDBQueryOperator } from '@/interfaces/CapricornDBQueryCondition'
+import { CapricornDocument } from '@/types/CapricornDocument'
+import { FlatKey } from '@/types/FlatKey'
 
-export class CapricornDBQuery {
+export class CapricornDBQuery<T extends CapricornDocument = CapricornDocument> {
   private _conditions: CapricornDBQueryCondition[] = []
 
-  public and(...queries: CapricornDBQuery[]): CapricornDBQuery {
+  /* @internal */
+  and(...queries: CapricornDBQuery<T>[]): CapricornDBQuery<T> {
     this._conditions.push({ type: 'and', queries } as CapricornDBQueryConditionLogical)
     return this
   }
 
-  public or(...queries: CapricornDBQuery[]): CapricornDBQuery {
+  /* @internal */
+  or(...queries: CapricornDBQuery<T>[]): CapricornDBQuery<T> {
     this._conditions.push({ type: 'or', queries } as CapricornDBQueryConditionLogical)
     return this
   }
 
-  public where(field: string, operator: CapricornDBQueryOperator, value: unknown): CapricornDBQuery {
-    this._conditions.push({ type: 'default', field, operator, value } as CapricornDBQueryConditionDefault)
+  /* @internal */
+  where(field: FlatKey<T> | 'id', operator: CapricornDBQueryOperator, value: unknown): CapricornDBQuery<T> {
+    this._conditions.push({ type: 'default', field: field as string, operator, value } as CapricornDBQueryConditionDefault)
     return this
   }
 
@@ -143,15 +148,77 @@ export class CapricornDBQuery {
   }
 }
 
-export const capricornDBQuery = () => {
-  return new CapricornDBQuery()
+/**
+ * Helper function to create a query from multiple conditions. This is just a shorthand for calling `and` on the collection.
+ * @param queries The query conditions to combine with a logical AND.
+ * @returns A new instance of CapricornDBQuery with the combined conditions.
+ * @notice Use `collection.createQuery` instead of this function to ensure proper typing without needing to specify the generic type parameter.
+ * @example
+ * const query = createQuery<YourDocumentType>(
+ *   where('age', 'gte', 30),
+ *   or(
+ *     where('flags', 'array-contains', 'active'),
+ *     where('address.city', 'eq', 'Sometown'),
+ *     where('name', 'eq', 'Bob')
+ *   )
+ * )
+ */
+export const createQuery = <T extends CapricornDocument>(...queries: CapricornDBQuery<T>[]) => {
+  return and<T>(...queries)
 }
-export const where = (field: string, operator: CapricornDBQueryOperator, value: unknown): CapricornDBQuery => {
-  return new CapricornDBQuery().where(field, operator, value)
+
+/**
+ * Queries documents where a specific field matches a condition.
+ * @param field The field to apply the condition on.
+ * @param operator The operator to use for the condition.
+ * @param value The value to compare the field against.
+ * @returns A new instance of CapricornDBQuery with the specified condition.
+ * @example
+ * const query = collection.createQuery(
+ *   where('age', 'gte', 30)
+ * )
+ * @example
+ * const query = collection.createQuery(
+ *   where('flags', 'array-contains', 'active')
+ * )
+ * @example
+ * const query = collection.createQuery(
+ *   where('address.city', 'eq', 'Sometown')
+ * )
+ */
+export const where = <T extends CapricornDocument>(field: FlatKey<T> | 'id', operator: CapricornDBQueryOperator, value: unknown): CapricornDBQuery<T> => {
+  return new CapricornDBQuery<T>().where(field, operator, value)
 }
-export const and = (...queries: CapricornDBQuery[]): CapricornDBQuery => {
-  return new CapricornDBQuery().and(...queries)
+
+/**
+ * Combines multiple queries with a logical AND. All conditions must be met for a document to match.
+ * @param queries The queries to combine with a logical AND.
+ * @returns A new instance of CapricornDBQuery with the combined conditions.
+ * @example
+ * const query = collection.createQuery(
+ *   and(
+ *     where('age', 'gte', 30),
+ *     where('flags', 'array-contains', 'active')
+ *   )
+ * )
+ */
+export const and = <T extends CapricornDocument>(...queries: CapricornDBQuery<T>[]): CapricornDBQuery<T> => {
+  return new CapricornDBQuery<T>().and(...queries)
 }
-export const or = (...queries: CapricornDBQuery[]): CapricornDBQuery => {
-  return new CapricornDBQuery().or(...queries)
+
+/**
+ * Combines multiple queries with a logical OR. At least one of the conditions must be met for a document to match.
+ * @param queries The queries to combine with a logical OR.
+ * @returns A new instance of CapricornDBQuery with the combined conditions.
+ * @example
+ * const query = collection.createQuery(
+ *   or(
+ *     where('flags', 'array-contains', 'active'),
+ *     where('address.city', 'eq', 'Sometown'),
+ *     where('name', 'eq', 'Bob')
+ *   )
+ * )
+ */
+export const or = <T extends CapricornDocument>(...queries: CapricornDBQuery<T>[]): CapricornDBQuery<T> => {
+  return new CapricornDBQuery<T>().or(...queries)
 }

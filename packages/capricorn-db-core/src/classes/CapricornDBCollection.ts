@@ -2,13 +2,14 @@ import { CollectionName } from '@/types/CollectionName'
 import { CapricornDB } from './CapricornDB'
 import { CapricornDocument } from '@/types/CapricornDocument'
 import { CapricornDocumentID, isValidCapricornDocumentID, WithCapricornID } from '@/types/CapricornDocumentID'
-import { CapricornDBQuery } from './CapricornDBQuery'
+import { CapricornDBQuery, createQuery } from './CapricornDBQuery'
 import { CapricornDBFilter } from '@/types/CapricornDBFilter'
 import { DocumentExistsError, DocumentNotFoundError, ImmutableIDUpdateError, InvalidDocumentIDError } from '@/errors/document'
 import { DatabaseError } from '@/errors/database'
 import { InvalidCollectionNameError } from '@/errors/collection'
 import { CapricornDBError } from '@/errors/error'
 import { InvalidQueryError } from '@/errors/query'
+import { FlatKey } from '@/types/FlatKey'
 
 export class CapricornDBCollection<T extends CapricornDocument> {
   private _capricorn: CapricornDB
@@ -185,11 +186,11 @@ export class CapricornDBCollection<T extends CapricornDocument> {
         if (filter.id) {
           return this.findByID(filter.id)
         }
-        const query = new CapricornDBQuery()
+        const query = new CapricornDBQuery<T>()
         for (const key in filter) {
           const value = filter[key as keyof typeof filter]
           if (value !== undefined) {
-            query.where(key, 'eq', value)
+            query.where(key as FlatKey<T>, 'eq', value)
           }
         }
         return this.findOne(query)
@@ -239,11 +240,11 @@ export class CapricornDBCollection<T extends CapricornDocument> {
             } as WithCapricornID<T>
           })
         }
-        const query = new CapricornDBQuery()
+        const query = new CapricornDBQuery<T>()
         for (const key in filter) {
           const value = filter[key as keyof typeof filter]
           if (value !== undefined) {
-            query.where(key, 'eq', value)
+            query.where(key as FlatKey<T>, 'eq', value)
           }
         }
         return this.find(query)
@@ -358,11 +359,11 @@ export class CapricornDBCollection<T extends CapricornDocument> {
           if (Object.keys(filter).length === 0) {
             throw new InvalidQueryError('Filter cannot be empty for deleteOne operation.')
           }
-          const query = new CapricornDBQuery()
+          const query = new CapricornDBQuery<T>()
           for (const key in filter) {
             const value = filter[key as keyof typeof filter]
             if (value !== undefined) {
-              query.where(key, 'eq', value)
+              query.where(key as FlatKey<T>, 'eq', value)
             }
           }
           return this.deleteOne(query)
@@ -403,11 +404,11 @@ export class CapricornDBCollection<T extends CapricornDocument> {
             await this._capricorn.service.delete(`DELETE FROM "${this._databaseTableName}"`)
             return
           }
-          const query = new CapricornDBQuery()
+          const query = new CapricornDBQuery<T>()
           for (const key in filter) {
             const value = filter[key as keyof typeof filter]
             if (value !== undefined) {
-              query.where(key, 'eq', value)
+              query.where(key as FlatKey<T>, 'eq', value)
             }
           }
           return this.deleteMany(query)
@@ -419,6 +420,24 @@ export class CapricornDBCollection<T extends CapricornDocument> {
       }
       throw new DatabaseError('Failed to delete documents.')
     }
+  }
+
+  /**
+   * Creates a new CapricornDBQuery instance for the collection with the specified query conditions. This method allows you to build complex queries using the provided conditions and logical operators.
+   * @param conditions The query conditions and logical operators to build the query.
+   * @returns A new instance of CapricornDBQuery with the specified conditions.
+   * @example
+   * const query = collection.createQuery(
+   *   where('age', 'gte', 30),
+   *   or(
+   *     where('flags', 'array-contains', 'active'),
+   *     where('address.city', 'eq', 'Sometown'),
+   *     where('name', 'eq', 'Bob')
+   *   )
+   * )
+   */
+  public createQuery(...queries: CapricornDBQuery<T>[]): CapricornDBQuery<T> {
+    return createQuery<T>(...queries)
   }
 
   private _collectionExists(): boolean {
