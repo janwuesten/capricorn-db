@@ -15,36 +15,37 @@ interface CapricornDBQueryConditionLogical extends CapricornDBQueryCondition {
 export class CapricornDBQuery {
   private _conditions: CapricornDBQueryCondition[] = []
 
-  and(...queries: CapricornDBQuery[]): CapricornDBQuery {
+  public and(...queries: CapricornDBQuery[]): CapricornDBQuery {
     this._conditions.push({ type: 'and', queries } as CapricornDBQueryConditionLogical)
     return this
   }
 
-  or(...queries: CapricornDBQuery[]): CapricornDBQuery {
+  public or(...queries: CapricornDBQuery[]): CapricornDBQuery {
     this._conditions.push({ type: 'or', queries } as CapricornDBQueryConditionLogical)
     return this
   }
 
-  where(field: string, operator: CapricornDBQueryOperator, value: unknown): CapricornDBQuery {
+  public where(field: string, operator: CapricornDBQueryOperator, value: unknown): CapricornDBQuery {
     this._conditions.push({ type: 'default', field, operator, value } as CapricornDBQueryConditionDefault)
     return this
   }
 
-  public _getSQLAndParams(first: boolean = false): ({ sql: string, params: unknown[] }) | null {
+  /* @internal */
+  getSQLAndParams(first: boolean = false): ({ sql: string, params: unknown[] }) | null {
     const sqlParts: string[] = []
     const params: unknown[] = []
     for (const condition of this._conditions) {
       switch (condition.type) {
         case 'and': {
           const _condition = condition as CapricornDBQueryConditionLogical
-          const parts = _condition.queries.map((q) => q._getSQLAndParams()).filter((p): p is { sql: string, params: unknown[] } => p !== null)
+          const parts = _condition.queries.map((q) => q.getSQLAndParams()).filter((p): p is { sql: string, params: unknown[] } => p !== null)
           sqlParts.push(parts.map((p) => `(${p.sql})`).join(' AND '))
           params.push(...parts.flatMap((p) => p.params))
           break
         }
         case 'or': {
           const _condition = condition as CapricornDBQueryConditionLogical
-          const parts = _condition.queries.map((q) => q._getSQLAndParams()).filter((p): p is { sql: string, params: unknown[] } => p !== null)
+          const parts = _condition.queries.map((q) => q.getSQLAndParams()).filter((p): p is { sql: string, params: unknown[] } => p !== null)
           sqlParts.push(parts.map((p) => `(${p.sql})`).join(' OR '))
           params.push(...parts.flatMap((p) => p.params))
           break

@@ -17,6 +17,7 @@ export class CapricornDBCollection<T extends CapricornDocument> {
     return `c.${this._collectionName}`
   }
 
+  /* @internal */
   constructor(options: { collectionName: CollectionName, capricorn: CapricornDB }) {
     if (!CapricornDBCollection.isValidName(options.collectionName)) {
       throw new InvalidCollectionNameError(`Invalid collection name: ${options.collectionName}. Collection names can only contain letters, numbers, dots, underscores and hyphens.`)
@@ -25,11 +26,11 @@ export class CapricornDBCollection<T extends CapricornDocument> {
     this._collectionName = options.collectionName
   }
 
-  static isValidName(name: string): boolean {
+  public static isValidName(name: string): boolean {
     return /^[a-zA-Z0-9._-]+$/.test(name)
   }
 
-  async insertOne(document: T): Promise<WithCapricornID<T>> {
+  public async insertOne(document: T): Promise<WithCapricornID<T>> {
     await this._createCollection()
     try {
       let id: string | null = null
@@ -39,10 +40,10 @@ export class CapricornDBCollection<T extends CapricornDocument> {
         }
         id = (document as WithCapricornID<T>).id
       } else {
-        id = await this._capricorn._service.generateDocumentID()
+        id = await this._capricorn.service.generateDocumentID()
       }
       const documentWithID = { ...document, id } as WithCapricornID<T>
-      await this._capricorn._service.insertDocument(`
+      await this._capricorn.service.insertDocument(`
         INSERT INTO "${this._databaseTableName}" (id, document) VALUES (?, jsonb(?))
       `, [id, JSON.stringify(document)])
       return documentWithID
@@ -59,11 +60,11 @@ export class CapricornDBCollection<T extends CapricornDocument> {
     }
   }
 
-  async insertMany(documents: T[]): Promise<WithCapricornID<T>[]> {
-    const isInsideeTransaction = !!this._capricorn._currentTransaction
+  public async insertMany(documents: T[]): Promise<WithCapricornID<T>[]> {
+    const isInsideeTransaction = this._capricorn.hasActiveTransaction
     try {
       if (!isInsideeTransaction) {
-        await this._capricorn._service.startTransaction()
+        await this._capricorn.service.startTransaction()
       }
       const addedDocuments: WithCapricornID<T>[] = []
       for (const document of documents) {
@@ -71,7 +72,7 @@ export class CapricornDBCollection<T extends CapricornDocument> {
         addedDocuments.push(addedDocument)
       }
       if (!isInsideeTransaction) {
-        await this._capricorn._service.commitTransaction()
+        await this._capricorn.service.commitTransaction()
       }
       return addedDocuments
     } catch (err) {
@@ -79,18 +80,18 @@ export class CapricornDBCollection<T extends CapricornDocument> {
         throw err
       }
       if (!isInsideeTransaction) {
-        await this._capricorn._service.rollbackTransaction()
+        await this._capricorn.service.rollbackTransaction()
       }
       throw new DatabaseError('Failed to insert documents.')
     }
   }
 
-  async findByID(id: CapricornDocumentID): Promise<WithCapricornID<T> | null> {
+  public async findByID(id: CapricornDocumentID): Promise<WithCapricornID<T> | null> {
     if (!isValidCapricornDocumentID(id)) {
       throw new InvalidDocumentIDError()
     }
     try {
-      const result = await this._capricorn._service.querySingleDocument<{ document: string }>(`
+      const result = await this._capricorn.service.querySingleDocument<{ document: string }>(`
         SELECT json(document) as document FROM "${this._databaseTableName}" WHERE id = ?
       `, [id])
       if (!result) {
@@ -108,11 +109,11 @@ export class CapricornDBCollection<T extends CapricornDocument> {
     }
   }
 
-  async findOne(filter: CapricornDBFilter<T>): Promise<WithCapricornID<T> | null> {
+  public async findOne(filter: CapricornDBFilter<T>): Promise<WithCapricornID<T> | null> {
     try {
       if (filter instanceof CapricornDBQuery) {
-        const query = filter._getSQLAndParams(true)
-        const result = await this._capricorn._service.querySingleDocument<{ id: string, document: string }>(`
+        const query = filter.getSQLAndParams(true)
+        const result = await this._capricorn.service.querySingleDocument<{ id: string, document: string }>(`
           SELECT id, json(document) as document FROM "${this._databaseTableName}" ${query?.sql ?? ''} LIMIT 1
         `, query?.params ?? [])
         if (!result) {
@@ -144,11 +145,11 @@ export class CapricornDBCollection<T extends CapricornDocument> {
     }
   }
 
-  async find(filter: CapricornDBFilter<T>): Promise<WithCapricornID<T>[]> {
+  public async find(filter: CapricornDBFilter<T>): Promise<WithCapricornID<T>[]> {
     try {
       if (filter instanceof CapricornDBQuery) {
-        const query = filter._getSQLAndParams(true)
-        const results = await this._capricorn._service.queryMultipleDocuments<{ id: string, document: string }>(`
+        const query = filter.getSQLAndParams(true)
+        const results = await this._capricorn.service.queryMultipleDocuments<{ id: string, document: string }>(`
           SELECT id, json(document) as document FROM "${this._databaseTableName}" ${query?.sql ?? ''}
         `, query?.params ?? [])
         return results.map((result) => {
@@ -160,7 +161,7 @@ export class CapricornDBCollection<T extends CapricornDocument> {
         })
       } else {
         if (Object.keys(filter).length === 0) {
-          const results = await this._capricorn._service.queryMultipleDocuments<{ id: string, document: string }>(`
+          const results = await this._capricorn.service.queryMultipleDocuments<{ id: string, document: string }>(`
             SELECT id, json(document) as document FROM "${this._databaseTableName}"
           `)
           return results.map((result) => {
@@ -188,7 +189,7 @@ export class CapricornDBCollection<T extends CapricornDocument> {
     }
   }
 
-  async updateOne(filter: CapricornDBFilter<T>, update: Partial<T>): Promise<void> {
+  public async updateOne(filter: CapricornDBFilter<T>, update: Partial<T>): Promise<void> {
     try {
       const document = await this.findOne(filter)
       if (!document) {
@@ -198,7 +199,7 @@ export class CapricornDBCollection<T extends CapricornDocument> {
         throw new ImmutableIDUpdateError()
       }
       const updatedDocument = { ...document, ...update }
-      await this._capricorn._service.updateDocument(`
+      await this._capricorn.service.updateDocument(`
         UPDATE "${this._databaseTableName}" SET document = jsonb(?) WHERE id = ?
       `, [JSON.stringify(updatedDocument), document.id])
     } catch (err) {
@@ -209,11 +210,11 @@ export class CapricornDBCollection<T extends CapricornDocument> {
     }
   }
 
-  async updateMany(filter: CapricornDBFilter<T>, update: Partial<T>): Promise<void> {
-    const isInsideeTransaction = !!this._capricorn._currentTransaction
+  public async updateMany(filter: CapricornDBFilter<T>, update: Partial<T>): Promise<void> {
+    const isInsideeTransaction = this._capricorn.hasActiveTransaction
     try {
       if (!isInsideeTransaction) {
-        await this._capricorn._service.startTransaction()
+        await this._capricorn.service.startTransaction()
       }
       const documents = await this.find(filter)
       for (const document of documents) {
@@ -221,34 +222,34 @@ export class CapricornDBCollection<T extends CapricornDocument> {
         if ((update as WithCapricornID<T>).id && (update as WithCapricornID<T>).id !== document.id) {
           throw new ImmutableIDUpdateError()
         }
-        await this._capricorn._service.updateDocument(`
+        await this._capricorn.service.updateDocument(`
           UPDATE "${this._databaseTableName}" SET document = jsonb(?) WHERE id = ?
         `, [JSON.stringify(updatedDocument), document.id])
       }
       if (!isInsideeTransaction) {
-        await this._capricorn._service.commitTransaction()
+        await this._capricorn.service.commitTransaction()
       }
     } catch (error) {
       if (CapricornDBError.isCapricornDBError(error)) {
         throw error
       }
       if (!isInsideeTransaction) {
-        await this._capricorn._service.rollbackTransaction()
+        await this._capricorn.service.rollbackTransaction()
       }
       throw new DatabaseError('Failed to update documents.')
     }
   }
 
-  async deleteOne(filter: CapricornDBFilter<T>): Promise<void> {
+  public async deleteOne(filter: CapricornDBFilter<T>): Promise<void> {
     try {
       if (filter instanceof CapricornDBQuery) {
-        const query = filter._getSQLAndParams(true)
-        await this._capricorn._service.deleteDocument(`
+        const query = filter.getSQLAndParams(true)
+        await this._capricorn.service.deleteDocument(`
           DELETE FROM "${this._databaseTableName}" ${query?.sql ?? ''} LIMIT 1
         `, query?.params ?? [])
       } else {
         if (filter.id) {
-          await this._capricorn._service.deleteDocument(`
+          await this._capricorn.service.deleteDocument(`
             DELETE FROM "${this._databaseTableName}" WHERE id = ? LIMIT 1
           `, [filter.id])
         } else {
@@ -273,21 +274,21 @@ export class CapricornDBCollection<T extends CapricornDocument> {
     }
   }
 
-  async deleteMany(filter: CapricornDBFilter<T>): Promise<void> {
+  public async deleteMany(filter: CapricornDBFilter<T>): Promise<void> {
     try {
       if (filter instanceof CapricornDBQuery) {
-        const query = filter._getSQLAndParams(true)
-        await this._capricorn._service.deleteDocument(`
+        const query = filter.getSQLAndParams(true)
+        await this._capricorn.service.deleteDocument(`
           DELETE FROM "${this._databaseTableName}" ${query?.sql ?? ''}
         `, query?.params ?? [])
       } else {
         if (filter.id) {
-          await this._capricorn._service.deleteDocument(`
+          await this._capricorn.service.deleteDocument(`
             DELETE FROM "${this._databaseTableName}" WHERE id = ?
           `, [filter.id])
         } else {
           if (Object.keys(filter).length === 0) {
-            await this._capricorn._service.deleteDocument(`DELETE FROM "${this._databaseTableName}"`)
+            await this._capricorn.service.deleteDocument(`DELETE FROM "${this._databaseTableName}"`)
             return
           }
           const query = new CapricornDBQuery()
@@ -318,8 +319,8 @@ export class CapricornDBCollection<T extends CapricornDocument> {
       return
     }
     try {
-      await this._capricorn._service.performQuery(`CREATE TABLE IF NOT EXISTS "${this._databaseTableName}" (id TEXT PRIMARY KEY, document BLOB)`)
-      this._capricorn._collections.push(this._collectionName)
+      await this._capricorn.service.performQuery(`CREATE TABLE IF NOT EXISTS "${this._databaseTableName}" (id TEXT PRIMARY KEY, document BLOB)`)
+      this._capricorn.collections.push(this._collectionName)
     } catch (err) {
       if (CapricornDBError.isCapricornDBError(err)) {
         throw err

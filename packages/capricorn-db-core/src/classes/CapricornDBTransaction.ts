@@ -14,22 +14,22 @@ export class CapricornDBTransaction {
 
   /** @internal */
   public async execute(): Promise<void> {
-    if (this._capricorn._currentTransaction) {
+    if (this._capricorn.hasActiveTransaction) {
       throw new PendingTransactionError()
     }
-    this._capricorn._currentTransaction = this
+    this._capricorn.currentTransaction = this
     try {
-      await this._capricorn._service.startTransaction()
+      await this._capricorn.service.startTransaction()
       await this._callback()
-      await this._capricorn._service.commitTransaction()
+      await this._capricorn.service.commitTransaction()
     } catch (error) {
-      await this._capricorn._service.rollbackTransaction()
+      await this._capricorn.service.rollbackTransaction()
       if (CapricornDBError.isCapricornDBError(error)) {
         throw error
       }
       throw error instanceof Error ? error : new Error(String(error))
     } finally {
-      this._capricorn._currentTransaction = null
+      this._capricorn.currentTransaction = null
     }
   }
 }

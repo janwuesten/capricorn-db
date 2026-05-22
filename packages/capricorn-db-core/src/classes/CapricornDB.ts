@@ -11,21 +11,21 @@ interface CapricornDBCreateOptions {
 }
 export class CapricornDB<Service extends CapricornDBCoreService = CapricornDBCoreService> {
   /** @internal */
-  _service: Service
+  service: Service
 
   /** @internal */
-  _collections: string[] = []
+  collections: string[] = []
 
   private constructor(service: Service) {
-    this._service = service
+    this.service = service
   }
 
-  static async _create(options: CapricornDBCreateOptions): Promise<CapricornDB> {
+  public static async create(options: CapricornDBCreateOptions): Promise<CapricornDB> {
     try {
       const capricorn = new CapricornDB(options.service)
-      const tables = await capricorn._service.listTables()
+      const tables = await capricorn.service.listTables()
       if (!tables.includes('capricorn')) {
-        await capricorn._service.performQuery(`
+        await capricorn.service.performQuery(`
           CREATE TABLE "capricorn" (
             key TEXT,
             value BLOB,
@@ -38,20 +38,20 @@ export class CapricornDB<Service extends CapricornDBCoreService = CapricornDBCor
         })
       }
       const collectionTables = tables.filter((table) => table.startsWith('c.'))
-      capricorn._collections = collectionTables.map((table) => table.replace('c.', ''))
+      capricorn.collections = collectionTables.map((table) => table.replace('c.', ''))
       return capricorn
     } catch (err) {
       throw new DatabaseError('Failed to initialize CapricornDB: ' + (err instanceof Error ? err.message : String(err)))
     }
   }
 
-  getCollectionNames(): string[] {
-    return this._collections
+  public getCollectionNames(): string[] {
+    return this.collections
   }
 
-  async setCapricornValue(key: string, value: Record<string, unknown>): Promise<void> {
+  public async setCapricornValue(key: string, value: Record<string, unknown>): Promise<void> {
     try {
-      await this._service.performQuery(`
+      await this.service.performQuery(`
         INSERT INTO "capricorn" (key, value) VALUES (?, jsonb(?))
         ON CONFLICT(key) DO UPDATE SET value=excluded.value
       `, [key, JSON.stringify(value)])
@@ -60,9 +60,9 @@ export class CapricornDB<Service extends CapricornDBCoreService = CapricornDBCor
     }
   }
 
-  async getCapricornValue<T extends Record<string, unknown>>(key: string): Promise<T | null> {
+  public async getCapricornValue<T extends Record<string, unknown>>(key: string): Promise<T | null> {
     try {
-      const result = await this._service.querySingleDocument<{ value: string }>(`
+      const result = await this.service.querySingleDocument<{ value: string }>(`
         SELECT json(value) FROM "capricorn" WHERE key = ?
       `, [key])
       if (!result) {
@@ -74,9 +74,18 @@ export class CapricornDB<Service extends CapricornDBCoreService = CapricornDBCor
     }
   }
 
-  /** @internal */
-  _currentTransaction: CapricornDBTransaction | null = null
-  async withTransaction(callback: CapricornDBTransactionCallback): Promise<CapricornDBTransaction> {
+  private _currentTransaction: CapricornDBTransaction | null = null
+  
+  /* @internal */
+  set currentTransaction(transaction: CapricornDBTransaction | null) {
+    this._currentTransaction = transaction
+  }
+
+  public get hasActiveTransaction(): boolean {
+    return this._currentTransaction !== null
+  }
+
+  public async withTransaction(callback: CapricornDBTransactionCallback): Promise<CapricornDBTransaction> {
     const transaction = new CapricornDBTransaction({
       capricorn: this,
       callback
@@ -85,10 +94,10 @@ export class CapricornDB<Service extends CapricornDBCoreService = CapricornDBCor
     return transaction
   }
 
-  async newDocumentID(): Promise<CapricornDocumentID> {
-    return await this._service.generateDocumentID()
+  public async newDocumentID(): Promise<CapricornDocumentID> {
+    return await this.service.generateDocumentID()
   }
-  collection<T extends CapricornDocument>(collectionName: CollectionName) {
+  public collection<T extends CapricornDocument>(collectionName: CollectionName) {
     return new CapricornDBCollection<T>({
       collectionName,
       capricorn: this
