@@ -26,10 +26,25 @@ export class CapricornDBCollection<T extends CapricornDocument> {
     this._collectionName = options.collectionName
   }
 
+  /**
+   * Validates a collection name against the allowed pattern. Collection names can only contain letters, numbers, dots, underscores and hyphens.
+   * @param name The collection name to validate.
+   * @returns True if the collection name is valid, false otherwise.
+   */
   public static isValidName(name: string): boolean {
     return /^[a-zA-Z0-9._-]+$/.test(name)
   }
 
+  /**
+   * Inserts a single document into the collection. If the document does not have an ID, a new unique ID will be generated.
+   * @param document The document to insert into the collection.
+   * @returns A promise that resolves to the inserted document with its ID.
+   * @throws DocumentExistsError if a document with the same ID already exists in the collection.
+   * @throws DatabaseError if there is an error inserting the document.
+   * @example
+   * const newDocument = await collection.insertOne({ name: 'Alice', age: 30 })
+   * console.log(newDocument.id) // Logs the generated ID of the inserted document
+   */
   public async insertOne(document: T): Promise<WithCapricornID<T>> {
     await this._createCollection()
     try {
@@ -60,6 +75,20 @@ export class CapricornDBCollection<T extends CapricornDocument> {
     }
   }
 
+  /**
+   * Inserts multiple documents into the collection. If any document does not have an ID, a new unique ID will be generated for it.
+   * @param documents An array of documents to insert into the collection.
+   * @returns A promise that resolves to an array of the inserted documents with their IDs.
+   * @throws DocumentExistsError if a document with the same ID already exists in the collection.
+   * @throws DatabaseError if there is an error inserting the documents.
+   * @example
+   * const newDocuments = await collection.insertMany([
+   *   { name: 'Alice', age: 30 },
+   *   { name: 'Bob', age: 25, id: 'custom-id-123' }
+   * ])
+   * console.log(newDocuments[0].id) // Logs the generated ID of the first inserted document
+   * console.log(newDocuments[1].id) // Logs 'custom-id-123'
+   */
   public async insertMany(documents: T[]): Promise<WithCapricornID<T>[]> {
     const isInsideeTransaction = this._capricorn.hasActiveTransaction
     try {
@@ -86,6 +115,20 @@ export class CapricornDBCollection<T extends CapricornDocument> {
     }
   }
 
+  /**
+   * Finds a single document in the collection by its ID. Returns null if no document with the specified ID is found.
+   * @param id The ID of the document to find.
+   * @returns A promise that resolves to the found document with its ID, or null if no document is found.
+   * @throws InvalidDocumentIDError if the provided ID is not a valid CapricornDocumentID.
+   * @throws DatabaseError if there is an error finding the document.
+   * @example
+   * const document = await collection.findByID('some-document-id')
+   * if (document) {
+   *   console.log(document.name) // Logs the name of the found document
+   * } else {
+   *   console.log('Document not found')
+   * }
+   */
   public async findByID(id: CapricornDocumentID): Promise<WithCapricornID<T> | null> {
     if (!isValidCapricornDocumentID(id)) {
       throw new InvalidDocumentIDError()
@@ -109,6 +152,20 @@ export class CapricornDBCollection<T extends CapricornDocument> {
     }
   }
 
+  /**
+   * Finds a single document in the collection that matches the specified filter. Returns null if no matching document is found.
+   * @param filter The filter criteria to find the document. Can be a simple object with field-value pairs or a more complex CapricornDBQuery.
+   * @returns A promise that resolves to the found document with its ID, or null if no document is found.
+   * @throws InvalidQueryError if the provided filter is invalid.
+   * @throws DatabaseError if there is an error finding the document.
+   * @example
+   * const document = await collection.findOne({ name: 'Alice' })
+   * if (document) {
+   *   console.log(document.id) // Logs the ID of the found document
+   * } else {
+   *   console.log('Document not found')
+   * }
+   */
   public async findOne(filter: CapricornDBFilter<T>): Promise<WithCapricornID<T> | null> {
     try {
       if (filter instanceof CapricornDBQuery) {
@@ -145,6 +202,16 @@ export class CapricornDBCollection<T extends CapricornDocument> {
     }
   }
 
+  /**
+   * Finds multiple documents in the collection that match the specified filter. Returns an empty array if no matching documents are found.
+   * @param filter The filter criteria to find the documents. Can be a simple object with field-value pairs or a more complex CapricornDBQuery.
+   * @returns A promise that resolves to an array of found documents with their IDs, or an empty array if no documents are found.
+   * @throws InvalidQueryError if the provided filter is invalid.
+   * @throws DatabaseError if there is an error finding the documents.
+   * @example
+   * const documents = await collection.find({ age: 30 })
+   * console.log(documents.length) // Logs the number of found documents
+   */
   public async find(filter: CapricornDBFilter<T>): Promise<WithCapricornID<T>[]> {
     try {
       if (filter instanceof CapricornDBQuery) {
@@ -189,6 +256,19 @@ export class CapricornDBCollection<T extends CapricornDocument> {
     }
   }
 
+  /**
+   * Updates a single document in the collection that matches the specified filter with the provided update data. The document to be updated is determined by the filter criteria, and the update data specifies the fields to be updated and their new values. If the filter matches multiple documents, only one of them will be updated.
+   * @param filter The filter criteria to find the document to update. Can be a simple object with field-value pairs or a more complex CapricornDBQuery.
+   * @param update An object containing the fields to be updated and their new values.
+   * @returns A promise that resolves when the update operation is complete.
+   * @throws DocumentNotFoundError if no document matching the filter is found in the collection.
+   * @throws ImmutableIDUpdateError if the update data contains an attempt to change the document's ID.
+   * @throws InvalidQueryError if the provided filter is invalid.
+   * @throws DatabaseError if there is an error updating the document.
+   * @example
+   * await collection.updateOne({ name: 'Alice' }, { age: 31 })
+   * console.log('Document updated successfully')
+   */
   public async updateOne(filter: CapricornDBFilter<T>, update: Partial<T>): Promise<void> {
     try {
       const document = await this.findOne(filter)
@@ -210,6 +290,18 @@ export class CapricornDBCollection<T extends CapricornDocument> {
     }
   }
 
+  /**
+   * Updates multiple documents in the collection that match the specified filter with the provided update data. The documents to be updated are determined by the filter criteria, and the update data specifies the fields to be updated and their new values.
+   * @param filter The filter criteria to find the documents to update. Can be a simple object with field-value pairs or a more complex CapricornDBQuery.
+   * @param update An object containing the fields to be updated and their new values.
+   * @returns A promise that resolves when the update operation is complete.
+   * @throws ImmutableIDUpdateError if the update data contains an attempt to change any document's ID.
+   * @throws InvalidQueryError if the provided filter is invalid.
+   * @throws DatabaseError if there is an error updating the documents.
+   * @example
+   * await collection.updateMany({ age: 30 }, { active: true })
+   * console.log('Documents updated successfully')
+   */
   public async updateMany(filter: CapricornDBFilter<T>, update: Partial<T>): Promise<void> {
     const isInsideeTransaction = this._capricorn.hasActiveTransaction
     try {
@@ -240,7 +332,17 @@ export class CapricornDBCollection<T extends CapricornDocument> {
     }
   }
 
-  public async deleteOne(filter: CapricornDBFilter<T>): Promise<void> {
+  /**
+   * Deletes a single document from the collection that matches the specified filter. The document to be deleted is determined by the filter criteria. If the filter matches multiple documents, only one of them will be deleted.
+   * @param filter The filter criteria to find the document to delete. Can be a simple object with field-value pairs or a more complex CapricornDBQuery.
+   * @returns A promise that resolves when the delete operation is complete.
+   * @throws InvalidQueryError if the provided filter is invalid.
+   * @throws DatabaseError if there is an error deleting the document.
+   * @example
+   * await collection.deleteOne({ name: 'Alice' })
+   * console.log('Document deleted successfully')
+   */
+  async deleteOne(filter: CapricornDBFilter<T>): Promise<void> {
     try {
       if (filter instanceof CapricornDBQuery) {
         const query = filter.getSQLAndParams(true)
@@ -274,6 +376,16 @@ export class CapricornDBCollection<T extends CapricornDocument> {
     }
   }
 
+  /**
+   * Deletes multiple documents from the collection that match the specified filter. The documents to be deleted are determined by the filter criteria.
+   * @param filter The filter criteria to find the documents to delete. Can be a simple object with field-value pairs or a more complex CapricornDBQuery.
+   * @returns A promise that resolves when the delete operation is complete.
+   * @throws InvalidQueryError if the provided filter is invalid.
+   * @throws DatabaseError if there is an error deleting the documents.
+   * @example
+   * await collection.deleteMany({ age: 30 })
+   * console.log('Documents deleted successfully')
+   */
   public async deleteMany(filter: CapricornDBFilter<T>): Promise<void> {
     try {
       if (filter instanceof CapricornDBQuery) {

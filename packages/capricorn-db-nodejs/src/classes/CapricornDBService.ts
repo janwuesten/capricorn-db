@@ -2,6 +2,10 @@ import { CapricornDBCoreService, CapricornDocumentID } from '@janwuesten/caprico
 import { DatabaseSync, SQLInputValue } from 'node:sqlite'
 import { randomBytes } from 'node:crypto'
 
+/**
+ * CapricornDBService is a service class that implements the CapricornDBCoreService interface for the Node.js environment.
+ * Do not use this class directly. Instead, use the getCapricornDB function to create an instance of CapricornDB with this service.
+ */
 export class CapricornDBService extends CapricornDBCoreService {
   private database: DatabaseSync
 
