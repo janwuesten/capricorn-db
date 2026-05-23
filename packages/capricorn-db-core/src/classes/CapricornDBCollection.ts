@@ -183,9 +183,6 @@ export class CapricornDBCollection<T extends CapricornDocument> {
           id: result.id
         } as WithCapricornID<T>
       } else {
-        if (filter.id) {
-          return this.findByID(filter.id)
-        }
         const query = new CapricornDBQuery<T>()
         for (const key in filter) {
           const value = filter[key as keyof typeof filter]
@@ -270,7 +267,7 @@ export class CapricornDBCollection<T extends CapricornDocument> {
    * await collection.updateOne({ name: 'Alice' }, { age: 31 })
    * console.log('Document updated successfully')
    */
-  public async updateOne(filter: CapricornDBFilter<T>, update: Partial<T>): Promise<void> {
+  public async updateOne(filter: CapricornDBFilter<T>, update: Partial<T>): Promise<WithCapricornID<T>> {
     try {
       const document = await this.findOne(filter)
       if (!document) {
@@ -283,6 +280,7 @@ export class CapricornDBCollection<T extends CapricornDocument> {
       await this._capricorn.service.update(`
         UPDATE "${this._databaseTableName}" SET document = jsonb(?) WHERE id = ?
       `, [JSON.stringify(updatedDocument), document.id])
+      return updatedDocument as WithCapricornID<T>
     } catch (err) {
       if (CapricornDBError.isCapricornDBError(err)) {
         throw err
@@ -303,13 +301,14 @@ export class CapricornDBCollection<T extends CapricornDocument> {
    * await collection.updateMany({ age: 30 }, { active: true })
    * console.log('Documents updated successfully')
    */
-  public async updateMany(filter: CapricornDBFilter<T>, update: Partial<T>): Promise<void> {
+  public async updateMany(filter: CapricornDBFilter<T>, update: Partial<T>): Promise<WithCapricornID<T>[]> {
     const isInsideeTransaction = this._capricorn.hasActiveTransaction
     try {
       if (!isInsideeTransaction) {
         await this._capricorn.service.startTransaction()
       }
       const documents = await this.find(filter)
+      const updatedDocuments: WithCapricornID<T>[] = []
       for (const document of documents) {
         const updatedDocument = { ...document, ...update }
         if ((update as WithCapricornID<T>).id && (update as WithCapricornID<T>).id !== document.id) {
@@ -318,10 +317,12 @@ export class CapricornDBCollection<T extends CapricornDocument> {
         await this._capricorn.service.update(`
           UPDATE "${this._databaseTableName}" SET document = jsonb(?) WHERE id = ?
         `, [JSON.stringify(updatedDocument), document.id])
+        updatedDocuments.push(updatedDocument as WithCapricornID<T>)
       }
       if (!isInsideeTransaction) {
         await this._capricorn.service.commitTransaction()
       }
+      return updatedDocuments
     } catch (error) {
       if (CapricornDBError.isCapricornDBError(error)) {
         throw error
@@ -336,38 +337,38 @@ export class CapricornDBCollection<T extends CapricornDocument> {
   /**
    * Deletes a single document from the collection that matches the specified filter. The document to be deleted is determined by the filter criteria. If the filter matches multiple documents, only one of them will be deleted.
    * @param filter The filter criteria to find the document to delete. Can be a simple object with field-value pairs or a more complex CapricornDBQuery.
-   * @returns A promise that resolves when the delete operation is complete.
+   * @param options Optional settings for the delete operation. If `returnDocument` is set to true, the deleted document will be returned.
+   * @returns A promise that resolves to the deleted document if `returnDocument` is true, otherwise resolves to null.
    * @throws InvalidQueryError if the provided filter is invalid.
    * @throws DatabaseError if there is an error deleting the document.
-   * @example
+   * @notice When passing returnDocument as true, the method will perform an additional query to retrieve the document before deleting it, which may impact performance. Use this option only when you need to access the deleted document's data.
    * await collection.deleteOne({ name: 'Alice' })
    * console.log('Document deleted successfully')
    */
-  async deleteOne(filter: CapricornDBFilter<T>): Promise<void> {
+  async deleteOne(filter: CapricornDBFilter<T>, options?: { returnDocument?: boolean }): Promise<WithCapricornID<T> | null> {
     try {
       if (filter instanceof CapricornDBQuery) {
+        let deletedDocument: WithCapricornID<T> | null = null
+        if (options?.returnDocument) {
+          deletedDocument = await this.findOne(filter)
+        }
         const query = filter.getSQLAndParams(true)
         await this._capricorn.service.delete(`
           DELETE FROM "${this._databaseTableName}" ${query?.sql ?? ''} LIMIT 1
         `, query?.params ?? [])
+        return deletedDocument
       } else {
-        if (filter.id) {
-          await this._capricorn.service.delete(`
-            DELETE FROM "${this._databaseTableName}" WHERE id = ? LIMIT 1
-          `, [filter.id])
-        } else {
-          if (Object.keys(filter).length === 0) {
-            throw new InvalidQueryError('Filter cannot be empty for deleteOne operation.')
-          }
-          const query = new CapricornDBQuery<T>()
-          for (const key in filter) {
-            const value = filter[key as keyof typeof filter]
-            if (value !== undefined) {
-              query.where(key as FlatKey<T>, 'eq', value)
-            }
-          }
-          return this.deleteOne(query)
+        if (Object.keys(filter).length === 0) {
+          throw new InvalidQueryError('Filter cannot be empty for deleteOne operation.')
         }
+        const query = new CapricornDBQuery<T>()
+        for (const key in filter) {
+          const value = filter[key as keyof typeof filter]
+          if (value !== undefined) {
+            query.where(key as FlatKey<T>, 'eq', value)
+          }
+        }
+        return this.deleteOne(query)
       }
     } catch (err) {
       if (CapricornDBError.isCapricornDBError(err)) {
@@ -380,39 +381,44 @@ export class CapricornDBCollection<T extends CapricornDocument> {
   /**
    * Deletes multiple documents from the collection that match the specified filter. The documents to be deleted are determined by the filter criteria.
    * @param filter The filter criteria to find the documents to delete. Can be a simple object with field-value pairs or a more complex CapricornDBQuery.
-   * @returns A promise that resolves when the delete operation is complete.
+   * @param options Optional settings for the delete operation. If `returnDocuments` is true, the method will return the deleted documents.
+   * @returns A promise that resolves to the deleted documents if `returnDocuments` is true, otherwise resolves to null.
    * @throws InvalidQueryError if the provided filter is invalid.
    * @throws DatabaseError if there is an error deleting the documents.
+   * @notice When passing returnDocument as true, the method will perform an additional query to retrieve the document before deleting it, which may impact performance. Use this option only when you need to access the deleted document's data.
    * @example
    * await collection.deleteMany({ age: 30 })
    * console.log('Documents deleted successfully')
    */
-  public async deleteMany(filter: CapricornDBFilter<T>): Promise<void> {
+  public async deleteMany(filter: CapricornDBFilter<T>, options?: { returnDocuments?: boolean }): Promise<WithCapricornID<T>[] | null> {
     try {
       if (filter instanceof CapricornDBQuery) {
+        let deletedDocuments: WithCapricornID<T>[] | null = null
+        if (options?.returnDocuments) {
+          deletedDocuments = await this.find(filter)
+        }
         const query = filter.getSQLAndParams(true)
         await this._capricorn.service.delete(`
           DELETE FROM "${this._databaseTableName}" ${query?.sql ?? ''}
         `, query?.params ?? [])
+        return deletedDocuments
       } else {
-        if (filter.id) {
-          await this._capricorn.service.delete(`
-            DELETE FROM "${this._databaseTableName}" WHERE id = ?
-          `, [filter.id])
-        } else {
-          if (Object.keys(filter).length === 0) {
-            await this._capricorn.service.delete(`DELETE FROM "${this._databaseTableName}"`)
-            return
+        if (Object.keys(filter).length === 0) {
+          let deletedDocuments: WithCapricornID<T>[] | null = null
+          if (options?.returnDocuments) {
+            deletedDocuments = await this.find(filter)
           }
-          const query = new CapricornDBQuery<T>()
-          for (const key in filter) {
-            const value = filter[key as keyof typeof filter]
-            if (value !== undefined) {
-              query.where(key as FlatKey<T>, 'eq', value)
-            }
-          }
-          return this.deleteMany(query)
+          await this._capricorn.service.delete(`DELETE FROM "${this._databaseTableName}"`)
+          return deletedDocuments
         }
+        const query = new CapricornDBQuery<T>()
+        for (const key in filter) {
+          const value = filter[key as keyof typeof filter]
+          if (value !== undefined) {
+            query.where(key as FlatKey<T>, 'eq', value)
+          }
+        }
+        return this.deleteMany(query)
       }
     } catch (err) {
       if (CapricornDBError.isCapricornDBError(err)) {
