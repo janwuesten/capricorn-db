@@ -5,6 +5,7 @@ import { CapricornDocument } from '@/types/CapricornDocument'
 import { CapricornDocumentID } from '@/types/CapricornDocumentID'
 import { CapricornDBTransaction, CapricornDBTransactionCallback } from './CapricornDBTransaction'
 import { DatabaseError } from '@/errors/database'
+import { CapricornDBEventHandler } from './CapricornDBEventHandler'
 
 interface CapricornDBCreateOptions {
   service: CapricornDBCoreService
@@ -15,6 +16,13 @@ export class CapricornDB<Service extends CapricornDBCoreService = CapricornDBCor
 
   /** @internal */
   collections: string[] = []
+
+  /** @internal */
+  eventHandler: CapricornDBEventHandler = new CapricornDBEventHandler()
+
+  public get event() {
+    return this.eventHandler
+  }
 
   private constructor(service: Service) {
     this.service = service

@@ -62,6 +62,7 @@ export class CapricornDBCollection<T extends CapricornDocument> {
       await this._capricorn.service.insert(`
         INSERT INTO "${this._databaseTableName}" (id, document) VALUES (?, jsonb(?))
       `, [id, JSON.stringify(document)])
+      this._capricorn.event.documentInserted.trigger(this._collectionName, [documentWithID])
       return documentWithID
     } catch (err) {
       if (CapricornDBError.isCapricornDBError(err)) {
@@ -104,6 +105,7 @@ export class CapricornDBCollection<T extends CapricornDocument> {
       if (!isInsideeTransaction) {
         await this._capricorn.service.commitTransaction()
       }
+      this._capricorn.event.documentInserted.trigger(this._collectionName, addedDocuments)
       return addedDocuments
     } catch (err) {
       if (CapricornDBError.isCapricornDBError(err)) {
@@ -280,6 +282,7 @@ export class CapricornDBCollection<T extends CapricornDocument> {
       await this._capricorn.service.update(`
         UPDATE "${this._databaseTableName}" SET document = jsonb(?) WHERE id = ?
       `, [JSON.stringify(updatedDocument), document.id])
+      this._capricorn.event.documentUpdated.trigger(this._collectionName, [updatedDocument])
       return updatedDocument as WithCapricornID<T>
     } catch (err) {
       if (CapricornDBError.isCapricornDBError(err)) {
@@ -322,6 +325,9 @@ export class CapricornDBCollection<T extends CapricornDocument> {
       if (!isInsideeTransaction) {
         await this._capricorn.service.commitTransaction()
       }
+      if (updatedDocuments.length > 0) {
+        this._capricorn.event.documentUpdated.trigger(this._collectionName, updatedDocuments)
+      }
       return updatedDocuments
     } catch (error) {
       if (CapricornDBError.isCapricornDBError(error)) {
@@ -346,6 +352,9 @@ export class CapricornDBCollection<T extends CapricornDocument> {
    * console.log('Document deleted successfully')
    */
   async deleteOne(filter: CapricornDBFilter<T>, options?: { returnDocument?: boolean }): Promise<WithCapricornID<T> | null> {
+    if (this._capricorn.event.documentDeleted.hasSubscribers(this._collectionName) && !options?.returnDocument) {
+      options = { ...options, returnDocument: true }
+    }
     try {
       if (filter instanceof CapricornDBQuery) {
         let deletedDocument: WithCapricornID<T> | null = null
@@ -356,6 +365,9 @@ export class CapricornDBCollection<T extends CapricornDocument> {
         await this._capricorn.service.delete(`
           DELETE FROM "${this._databaseTableName}" ${query?.sql ?? ''} LIMIT 1
         `, query?.params ?? [])
+        if (deletedDocument) {
+          this._capricorn.event.documentDeleted.trigger(this._collectionName, [deletedDocument])
+        }
         return deletedDocument
       } else {
         if (Object.keys(filter).length === 0) {
@@ -391,6 +403,9 @@ export class CapricornDBCollection<T extends CapricornDocument> {
    * console.log('Documents deleted successfully')
    */
   public async deleteMany(filter: CapricornDBFilter<T>, options?: { returnDocuments?: boolean }): Promise<WithCapricornID<T>[] | null> {
+    if (this._capricorn.event.documentDeleted.hasSubscribers(this._collectionName) && !options?.returnDocuments) {
+      options = { ...options, returnDocuments: true }
+    }
     try {
       if (filter instanceof CapricornDBQuery) {
         let deletedDocuments: WithCapricornID<T>[] | null = null
@@ -401,6 +416,9 @@ export class CapricornDBCollection<T extends CapricornDocument> {
         await this._capricorn.service.delete(`
           DELETE FROM "${this._databaseTableName}" ${query?.sql ?? ''}
         `, query?.params ?? [])
+        if (deletedDocuments && deletedDocuments.length > 0) {
+          this._capricorn.event.documentDeleted.trigger(this._collectionName, deletedDocuments)
+        }
         return deletedDocuments
       } else {
         if (Object.keys(filter).length === 0) {
@@ -409,6 +427,9 @@ export class CapricornDBCollection<T extends CapricornDocument> {
             deletedDocuments = await this.find(filter)
           }
           await this._capricorn.service.delete(`DELETE FROM "${this._databaseTableName}"`)
+          if (deletedDocuments && deletedDocuments.length > 0) {
+            this._capricorn.event.documentDeleted.trigger(this._collectionName, deletedDocuments)
+          }
           return deletedDocuments
         }
         const query = new CapricornDBQuery<T>()
@@ -463,6 +484,113 @@ export class CapricornDBCollection<T extends CapricornDocument> {
         throw err
       }
       throw new DatabaseError('Failed to create collection.')
+    }
+  }
+
+  /**
+   * Provides access to the event handlers for this collection, allowing you to subscribe to events.
+   */
+  public get event() {
+    return {
+      /**
+       * Event triggered when one or more documents are inserted into the collection.
+       */
+      documentInserted: {
+        /**
+         * Subscribes a handler function to the documentInserted event for this collection.
+         * The handler will be called whenever one or more documents are inserted into the collection, and it will receive the collection name and an array of the inserted documents with their IDs.
+         * @param handler A function that will be called when the documentInserted event is triggered. It receives an array of the inserted documents with their IDs.
+         * @returns A function that can be called to unsubscribe the handler from the event.
+         * @example
+         * const unsubscribe = collection.event.documentInserted.on((documents) => {
+         *   console.log('Documents inserted:', documents)
+         * })
+         * // To unsubscribe from the event later:
+         * unsubscribe()
+         */
+        on: (handler: (documents: WithCapricornID<T>[]) => void) => this._capricorn.event.documentInserted.on(this._collectionName, handler),
+
+        /**
+         * Unsubscribes a handler function from the documentInserted event for this collection.
+         * The handler will no longer be called when documents are inserted into the collection.
+         * @param handler The handler function to unsubscribe from the documentInserted event. This should be the same function that was previously subscribed using the `on` method.
+         * @example
+         * // Assuming you have a handler function that was subscribed to the event:
+         * const handler = (documents) => { console.log('Documents inserted:', documents) }
+         * collection.event.documentInserted.on(handler)
+         * // To unsubscribe from the event:
+         * collection.event.documentInserted.unsubscribe(handler)
+         */
+        unsubscribe: (handler: (documents: WithCapricornID<T>[]) => void) => this._capricorn.event.documentInserted.unsubscribe<T>(this._collectionName, handler)
+      },
+
+      /**
+       * Event triggered when one or more documents are updated in the collection.
+       */
+      documentUpdated: {
+        /**
+         * Subscribes a handler function to the documentUpdated event for this collection.
+         * The handler will be called whenever one or more documents are updated in the collection,
+         * and it will receive the collection name and an array of the updated documents with their IDs.
+         * @param handler A function that will be called when the documentUpdated event is triggered. It receives an array of the updated documents with their IDs.
+         * @returns A function that can be called to unsubscribe the handler from the event.
+         * @example
+         * const unsubscribe = collection.event.documentUpdated.on((documents) => {
+         *   console.log('Documents updated:', documents)
+         * })
+         * // To unsubscribe from the event later:
+         * unsubscribe()
+         */
+        on: (handler: (documents: WithCapricornID<T>[]) => void) => this._capricorn.event.documentUpdated.on(this._collectionName, handler),
+
+        /**
+         * Unsubscribes a handler function from the documentUpdated event for this collection. The handler will no longer be called when documents are updated in the collection.
+         * @param handler The handler function to unsubscribe from the documentUpdated event. This should be the same function that was previously subscribed using the `on` method.
+         * @returns A function that can be called to unsubscribe the handler from the event.
+         * @example
+         * // Assuming you have a handler function that was subscribed to the event:
+         * const handler = (documents) => { console.log('Documents updated:', documents) }
+         * collection.event.documentUpdated.on(handler)
+         * // To unsubscribe from the event:
+         * collection.event.documentUpdated.unsubscribe(handler)
+         */
+        unsubscribe: (handler: (documents: WithCapricornID<T>[]) => void) => this._capricorn.event.documentUpdated.unsubscribe<T>(this._collectionName, handler)
+      },
+
+      /**
+       * Event triggered when one or more documents are deleted from the collection.
+       */
+      documentDeleted: {
+        /**
+         * Subscribes a handler function to the documentDeleted event for this collection.
+         * The handler will be called whenever one or more documents are deleted from the collection,
+         * and it will receive the collection name and an array of the deleted documents with their IDs.
+         * @param handler A function that will be called when the documentDeleted event is triggered. It receives an array of the deleted documents with their IDs.
+         * @returns A function that can be called to unsubscribe the handler from the event.
+         * @notice When subscribing to the documentDeleted event, the handler will receive the deleted documents as they were before deletion.
+         * The option to return the deleted documents is automatically enabled for delete operations when there are subscribers to this event, which may impact performance.
+         * @example
+         * const unsubscribe = collection.event.documentDeleted.on((documents) => {
+         *   console.log('Documents deleted:', documents)
+         * })
+         * // To unsubscribe from the event later:
+         * unsubscribe()
+         */
+        on: (handler: (documents: WithCapricornID<T>[]) => void) => this._capricorn.event.documentDeleted.on(this._collectionName, handler),
+
+        /**
+         * Unsubscribes a handler function from the documentDeleted event for this collection. The handler will no longer be called when documents are deleted from the collection.
+         * @param handler The handler function to unsubscribe from the documentDeleted event. This should be the same function that was previously subscribed using the `on` method.
+         * @returns A function that can be called to unsubscribe the handler from the event.
+         * @example
+         * // Assuming you have a handler function that was subscribed to the event:
+         * const handler = (documents) => { console.log('Documents deleted:', documents) }
+         * collection.event.documentDeleted.on(handler)
+         * // To unsubscribe from the event:
+         * collection.event.documentDeleted.unsubscribe(handler)
+         */
+        unsubscribe: (handler: (documents: WithCapricornID<T>[]) => void) => this._capricorn.event.documentDeleted.unsubscribe<T>(this._collectionName, handler)
+      }
     }
   }
 }
