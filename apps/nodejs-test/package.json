@@ -4,7 +4,7 @@
   "description": "",
   "type": "module",
   "scripts": {
-    "test": "NODE_OPTIONS=--experimental-vm-modules jest",
+    "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest",
     "lint": "eslint tests"
   },
   "keywords": [],
@@ -16,6 +16,7 @@
     "@swc/jest": "^0.2.37",
     "@types/jest": "^29.5.14",
     "@types/node": "^25.8.0",
+    "cross-env": "^10.1.0",
     "eslint": "^9.0.0",
     "jest": "^29.7.0",
     "typescript": "^6.0.3"
