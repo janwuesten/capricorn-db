@@ -1,7 +1,7 @@
 {
   "name": "@janwuesten/capricorn-db-nodejs",
   "version": "0.1.0",
-  "description": "",
+  "description": "CapricornDB for Node.js runtimes.",
   "main": "dist/index.js",
   "type": "module",
   "scripts": {

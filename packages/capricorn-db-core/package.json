@@ -1,7 +1,7 @@
 {
   "name": "@janwuesten/capricorn-db-core",
   "version": "0.1.0",
-  "description": "",
+  "description": "The core package of the Capricorn NoSQL database. It contains the core functionality and types.",
   "main": "dist/index.js",
   "type": "module",
   "scripts": {
