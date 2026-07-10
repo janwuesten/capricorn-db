@@ -1,6 +1,6 @@
 {
   "name": "@janwuesten/capricorndb-core",
-  "version": "0.1.0",
+  "version": "0.1.1",
   "author": "Jan Wüsten",
   "description": "The core package of the Capricorn NoSQL database. It contains the core functionality and types.",
   "repository": {
