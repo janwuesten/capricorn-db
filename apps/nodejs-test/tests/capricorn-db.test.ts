@@ -17,7 +17,7 @@ describe('capricorn-db', () => {
   let capricorn: CapricornDB
   it('should create a capricorn instance', async () => {
     capricorn = await createCapricornDB({
-      databasePath: ':memory:'
+      path: ':memory:'
     })
     expect(capricorn).toBeDefined()
   })

@@ -30,7 +30,7 @@ Package specific requirements are displayed inside the specific package document
 
 ```ts
 const capricornDB = await createCapricornDB({
-  databasePath: './myDatabase.capricorndb'
+  path: './myDatabase.capricorndb'
 })
 ```
 

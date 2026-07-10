@@ -10,7 +10,7 @@ export interface CapricornDBCreateOptions {
   /**
    * The path to the database file. If the file does not exist, it will be created. Use :memory: to create an in-memory database.
    */
-  databasePath: string
+  path: string
 }
 
 /**
@@ -19,7 +19,7 @@ export interface CapricornDBCreateOptions {
  * @returns A promise that resolves to the CapricornDB instance.
  */
 export const createCapricornDB = async (options: CapricornDBCreateOptions) => {
-  const database = new DatabaseSync(options.databasePath, {
+  const database = new DatabaseSync(options.path, {
     allowExtension: true
   })
   const capricorn = await CapricornDB.create({

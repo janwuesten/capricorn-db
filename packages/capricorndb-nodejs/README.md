@@ -27,17 +27,17 @@ To use this package, the following requirements are needed:
 
 To install Capricorn DB for NodeJS install the `@janwuesten/capricorn-db-nodejs` with your favorite package manager:
 
-`pnpm i @janwuesten/capricorn-db-nodejs`
+`pnpm i @janwuesten/capricorndb-nodejs`
 
 ## Getting started
 
-To create a capricorn database, simply use the `createCapricornDB` method and specify a `databasePath` for your database. No additional configuration is required for NodeJS.
+To create a capricorn database, simply use the `createCapricornDB` method and specify a `path` for your database. No additional configuration is required for NodeJS.
 
 ```ts
 import { createCapricornDB } from '@janwuesten/capricorn-db-nodejs'
 
 const capricorn = await createCapricornDB({
-  databasePath: './myDatabase.capricorndb'
+  path: './myDatabase.capricorndb'
 })
 ```
 
