@@ -2,9 +2,23 @@
 
 ## Introduction
 
-The Capricorn DB is a Document database for local runtimes like Desktop Apps or React Native Apps. It offers a syntax similar to MongoDB for local apps and is fully compatible with TypeScript for avoid typos and type missmatches.
+CapricornDB is a NoSQL database for local application storage such as React Native app development.
+
+It is based on SQLite and comes with a MongoDB similar syntax and improved query language that works nativly with TypeScript types.
+
+It has several packages for different runtimes that will extend over time.
+
+The database is currently in development and not feature complete.
 
 This package is for the NodeJS runtime.
+
+## Requirements
+
+To use this package, the following requirements are needed:
+
+- [Node.js 22+](https://nodejs.org/en)
+- [TypeScript](https://www.typescriptlang.org) (optional, but recommended)
+- A package manager of your choice. PNPM recommended.
 
 ## Features
 
@@ -16,31 +30,60 @@ This package is for the NodeJS runtime.
 | Query documents | 0.1.0 |
 | Events for realtime Updates | 0.1.0 |
 
-## Requirements
-
-To use this package, the following requirements are needed:
-
-- [NodeJS](https://nodejs.org/en) 22 or newer
-- [TypeScript](https://www.typescriptlang.org) (optional, but recommended)
-
 ## Installation
 
 To install Capricorn DB for NodeJS install the `@janwuesten/capricorn-db-nodejs` with your favorite package manager:
 
 `pnpm i @janwuesten/capricorndb-nodejs`
 
-## Getting started
+## Quick start
 
-To create a capricorn database, simply use the `createCapricornDB` method and specify a `path` for your database. No additional configuration is required for NodeJS.
+1. Create a CapricornDB instance.
 
 ```ts
-import { createCapricornDB } from '@janwuesten/capricorn-db-nodejs'
-
-const capricorn = await createCapricornDB({
+const capricornDB = await createCapricornDB({
   path: './myDatabase.capricorndb'
 })
 ```
 
-You are now ready to use the Capricorn DB in your project.
+2. Insert some documents inside a collection
 
-See the WIKI for a documentation for all methods.
+```ts
+const collection = capricorn.collection<Message>('test')
+await collection.insertMany([
+  {
+    message: 'Hello world!',
+    sender: 'Foo'
+  }
+])
+```
+
+3. Query some documents
+```ts
+const messages = await collection.find({
+  sender: 'Foo'
+})
+console.log(messages)
+```
+
+4. Perform complex queries
+```ts
+const query = collection.createQuery(
+  and(
+    where('sender', 'eq', 'Foo'),
+    where('message', 'contains-case-sensitive', 'world')
+  )
+)
+const messages = await collection.find(query)
+console.log(messages)
+```
+
+See the [WIKI](https://github.com/janwuesten/capricorn-db/wiki) for a documentation for all methods and features.
+
+## License
+
+The package is licensed under the MIT license. Check the `LICENSE.txt` for more information.
+
+## Additional information
+
+No AI was harmed in the making of this project. I will still provide LLM documentation once the human readable documentation is ready.
