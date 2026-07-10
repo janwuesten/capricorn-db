@@ -76,7 +76,7 @@ If you have any suggestion, improvements or bugs you can always open an issue.
 
 ## License
 
-All packages are generally licensed unter the MIT license. Check the `LICENSE.txt` for each package for more information.
+All packages are generally licensed under the MIT license. Check the `LICENSE.txt` for each package for more information.
 
 ## Additional information
 
