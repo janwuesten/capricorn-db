@@ -30,7 +30,7 @@ export class CapricornDB<Service extends CapricornDBCoreService = CapricornDBCor
 
   /**
    * Factory method to create an instance of CapricornDB. This method initializes the database, creates necessary tables, and loads existing collections.
-   * Should only be called by the getCapricornDB method by the environment adapter.
+   * Should only be called by the createCapricornDB method by the environment adapter.
    * @param options The options for creating the CapricornDB instance.
    * @returns A promise that resolves to the created CapricornDB instance.
    */

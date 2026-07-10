@@ -18,7 +18,7 @@ export interface CapricornDBCreateOptions {
  * @param options The options to create the CapricornDB instance.
  * @returns A promise that resolves to the CapricornDB instance.
  */
-export const getCapricornDB = async (options: CapricornDBCreateOptions) => {
+export const createCapricornDB = async (options: CapricornDBCreateOptions) => {
   const database = new DatabaseSync(options.databasePath, {
     allowExtension: true
   })
