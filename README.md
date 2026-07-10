@@ -24,7 +24,7 @@ Package specific requirements are displayed inside the specific package document
 
 1. Install the package for your runtime (see package documentation for more information) with the package manager of your choice. 
 
-`pnpm i @janwuesten/capricorn-db-nodejs`
+`pnpm i @janwuesten/capricorndb-nodejs`
 
 2. Create a CapricornDB instance.
 

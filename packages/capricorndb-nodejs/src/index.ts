@@ -1,5 +1,5 @@
-export * from '@janwuesten/capricorn-db-core'
-import { CapricornDB } from '@janwuesten/capricorn-db-core'
+export * from '@janwuesten/capricorndb-core'
+import { CapricornDB } from '@janwuesten/capricorndb-core'
 import { CapricornDBService } from '@/classes/CapricornDBService'
 import { DatabaseSync } from 'node:sqlite'
 

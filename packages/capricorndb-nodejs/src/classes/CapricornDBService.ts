@@ -1,4 +1,4 @@
-import { CapricornDBCoreService, CapricornDocumentID } from '@janwuesten/capricorn-db-core'
+import { CapricornDBCoreService, CapricornDocumentID } from '@janwuesten/capricorndb-core'
 import { DatabaseSync, SQLInputValue } from 'node:sqlite'
 import { randomBytes } from 'node:crypto'
 

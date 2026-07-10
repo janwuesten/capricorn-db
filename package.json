@@ -1,5 +1,5 @@
 {
-  "name": "capricorn-db",
+  "name": "@janwuesten/capricorn-db",
   "private": true,
   "scripts": {
     "build": "turbo run build",
