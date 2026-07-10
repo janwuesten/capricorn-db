@@ -1,5 +1,5 @@
 {
-  "name": "collection-db",
+  "name": "capricorn-db",
   "private": true,
   "scripts": {
     "build": "turbo run build",

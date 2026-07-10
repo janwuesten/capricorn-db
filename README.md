@@ -1,29 +1,74 @@
-![Capricorn Stack Banner](docs/assets/banner.jpg)
-
-# Capricorn Stack
+# CapricornDB
 
 ## Introduction
 
-Capricorn Stack is a Tech-Stack designed to simplify and therefore fasten development tasks.
+CapricornDB is a NoSQL database for local application storage such as React Native app development.
 
-The Capricorn Stack is primarily designed for large applications with NodeJS and TypeScript using Kubernetes infrastructure and is not designed to replace existing solutions. Rather is is designed to work with existing solutions and simplify / extend them.
+It is based on SQLite and comes with a MongoDB similar syntax and improved query language that works nativly with TypeScript types.
 
-The Capricorn Stack is currently in development and not feature complete.
+It has several packages for different runtimes that will extend over time.
 
-Packages that are ready for production use will be marked as production ready. Packages that are not ready for production will be marked as such as well. See package documention for more information.
+The database is currently in development and not feature complete.
 
 ## Requirements
 
-For a lot of features the following requirements are suggested / needed in your project:
+The requirements will vary depending on the runtime, but in general using CapricornDB requires:
 
+- [Node.js 22+](https://nodejs.org/en)
 - [TypeScript](https://www.typescriptlang.org)
-- [Effect](https://effect.website)
+- A package manager of your choice. PNPM recommended.
 
 Package specific requirements are displayed inside the specific package documentation.
 
+## Quick start
+
+1. Install the package for your runtime (see package documentation for more information) with the package manager of your choice. 
+
+`pnpm i @janwuesten/capricorn-db-nodejs`
+
+2. Create a CapricornDB instance.
+
+```ts
+const capricornDB = await createCapricornDB({
+  databasePath: './myDatabase.capricorndb'
+})
+```
+
+3. Insert some documents inside a collection
+
+```ts
+const collection = capricorn.collection<Message>('test')
+await collection.insertMany([
+  {
+    message: 'Hello world!',
+    sender: 'Foo'
+  }
+])
+```
+
+4. Query some documents
+```ts
+const messages = await collection.find({
+  sender: 'Foo'
+})
+console.log(messages)
+```
+
+5. Perform complex queries
+```ts
+const query = collection.createQuery(
+  and(
+    where('sender', 'eq', 'Foo'),
+    where('message', 'contains-case-sensitive', 'world')
+  )
+)
+const messages = await collection.find(query)
+console.log(messages)
+```
+
 ## Contributing
 
-At the moment, the Capricorn Stack is in active development. As it is primarily created at the moment to solve my problems, contributing is not possible at this stage in development in order to focus on the direction I have in mind.
+At the moment, the CapricornDB is in active development. As it is primarily created at the moment to solve my problems, contributing is not possible at this stage in development in order to focus on the direction I have in mind.
 
 Later when my direction is set and my problems are generally solved, Contributing will of couse be open.
 
