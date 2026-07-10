@@ -32,7 +32,7 @@ To use this package, the following requirements are needed:
 
 ## Installation
 
-To install Capricorn DB for NodeJS install the `@janwuesten/capricorn-db-nodejs` with your favorite package manager:
+To install Capricorn DB for NodeJS install the `@janwuesten/capricorndb-nodejs` package with your favorite package manager:
 
 `pnpm i @janwuesten/capricorndb-nodejs`
 
