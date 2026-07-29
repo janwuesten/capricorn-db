@@ -366,18 +366,17 @@ export class CapricornDBCollection<T extends CapricornDocument> {
     }
     try {
       if (filter instanceof CapricornDBQuery) {
-        let deletedDocument: WithCapricornID<T> | null = null
-        if (options?.returnDocument) {
-          deletedDocument = await this.findOne(filter)
+        const document = await this.findOne(filter)
+        if (!document) {
+          throw new DocumentNotFoundError('unknown')
         }
-        const query = filter.getSQLAndParams(true)
         await this._capricorn.service.delete(`
-          DELETE FROM "${this._databaseTableName}" ${query?.sql ?? ''} LIMIT 1
-        `, query?.params ?? [])
-        if (deletedDocument) {
-          this._capricorn.event.documentDeleted.trigger(this._collectionName, [deletedDocument])
+          DELETE FROM "${this._databaseTableName}" WHERE id = ?
+        `, [document.id])
+        if (document) {
+          this._capricorn.event.documentDeleted.trigger(this._collectionName, [document])
         }
-        return deletedDocument
+        return document
       } else {
         if (Object.keys(filter).length === 0) {
           throw new InvalidQueryError('Filter cannot be empty for deleteOne operation.')
