@@ -1,0 +1,46 @@
+{
+  "name": "@janwuesten/capricorndb-react-native",
+  "version": "0.1.1",
+  "author": "Jan Wüsten",
+  "description": "CapricornDB for React Native runtimes.",
+  "repository": {
+    "type": "git",
+    "url": "https://github.com/janwuesten/capricorn-db"
+  },
+  "license": "MIT",
+  "main": "dist/index.js",
+  "type": "module",
+  "files": [
+    "dist",
+    "README.md",
+    "LICENSE.txt"
+  ],
+  "publishConfig": {
+    "access": "public"
+  },
+  "scripts": {
+    "build": "node -e \"require('node:fs').rmSync('dist', { recursive: true, force: true })\" && tsc && tsc-alias --resolve-full-paths",
+    "prepack": "pnpm build",
+    "lint": "eslint src"
+  },
+  "keywords": [
+    "nosql",
+    "database",
+    "react-native",
+    "typescript"
+  ],
+  "devDependencies": {
+    "@janwuesten/eslint-config": "workspace:*",
+    "@types/node": "^25.8.0",
+    "eslint": "^9.0.0",
+    "tsc-alias": "^1.8.17",
+    "typescript": "^6.0.3"
+  },
+  "types": "dist/index.d.ts",
+  "dependencies": {
+    "@janwuesten/capricorndb-core": "workspace:*"
+  },
+  "peerDependencies": {
+    "react-native-nitro-sqlite": "^9.7.0"
+  }
+}
