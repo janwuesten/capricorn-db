@@ -136,6 +136,9 @@ export class CapricornDBCollection<T extends CapricornDocument> {
     if (!isValidCapricornDocumentID(id)) {
       throw new InvalidDocumentIDError()
     }
+    if (!this._collectionExists()) {
+      return null
+    }
     try {
       const result = await this._capricorn.service.querySingle<{ document: string }>(`
         SELECT json(document) as document FROM "${this._databaseTableName}" WHERE id = ?
@@ -170,6 +173,9 @@ export class CapricornDBCollection<T extends CapricornDocument> {
    * }
    */
   public async findOne(filter: CapricornDBFilter<T>): Promise<WithCapricornID<T> | null> {
+    if (!this._collectionExists()) {
+      return null
+    }
     try {
       if (filter instanceof CapricornDBQuery) {
         const query = filter.getSQLAndParams(true)
@@ -213,6 +219,9 @@ export class CapricornDBCollection<T extends CapricornDocument> {
    * console.log(documents.length) // Logs the number of found documents
    */
   public async find(filter: CapricornDBFilter<T>): Promise<WithCapricornID<T>[]> {
+    if (!this._collectionExists()) {
+      return []
+    }
     try {
       if (filter instanceof CapricornDBQuery) {
         const query = filter.getSQLAndParams(true)
