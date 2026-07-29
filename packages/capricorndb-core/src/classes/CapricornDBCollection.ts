@@ -73,7 +73,7 @@ export class CapricornDBCollection<T extends CapricornDocument> {
           throw new DocumentExistsError((document as WithCapricornID<T>).id)
         }
       }
-      throw new DatabaseError('Failed to insert document.')
+      throw new DatabaseError('Failed to insert document.', err)
     }
   }
 
@@ -114,7 +114,7 @@ export class CapricornDBCollection<T extends CapricornDocument> {
       if (!isInsideeTransaction) {
         await this._capricorn.service.rollbackTransaction()
       }
-      throw new DatabaseError('Failed to insert documents.')
+      throw new DatabaseError('Failed to insert documents.', err)
     }
   }
 
@@ -154,7 +154,7 @@ export class CapricornDBCollection<T extends CapricornDocument> {
       if (CapricornDBError.isCapricornDBError(err)) {
         throw err
       }
-      throw new DatabaseError('Failed to find document by ID.')
+      throw new DatabaseError('Failed to find document by ID.', err)
     }
   }
 
@@ -204,7 +204,7 @@ export class CapricornDBCollection<T extends CapricornDocument> {
       if (CapricornDBError.isCapricornDBError(err)) {
         throw err
       }
-      throw new DatabaseError('Failed to find document.')
+      throw new DatabaseError('Failed to find document.', err)
     }
   }
 
@@ -261,7 +261,7 @@ export class CapricornDBCollection<T extends CapricornDocument> {
       if (CapricornDBError.isCapricornDBError(err)) {
         throw err
       }
-      throw new DatabaseError('Failed to find documents.')
+      throw new DatabaseError('Failed to find documents.', err)
     }
   }
 
@@ -297,7 +297,7 @@ export class CapricornDBCollection<T extends CapricornDocument> {
       if (CapricornDBError.isCapricornDBError(err)) {
         throw err
       }
-      throw new DatabaseError('Failed to update document.')
+      throw new DatabaseError('Failed to update document.', err)
     }
   }
 
@@ -345,7 +345,7 @@ export class CapricornDBCollection<T extends CapricornDocument> {
       if (!isInsideeTransaction) {
         await this._capricorn.service.rollbackTransaction()
       }
-      throw new DatabaseError('Failed to update documents.')
+      throw new DatabaseError('Failed to update documents.', error)
     }
   }
 
@@ -395,7 +395,7 @@ export class CapricornDBCollection<T extends CapricornDocument> {
       if (CapricornDBError.isCapricornDBError(err)) {
         throw err
       }
-      throw new DatabaseError('Failed to delete document.')
+      throw new DatabaseError('Failed to delete document.', err)
     }
   }
 
@@ -454,7 +454,7 @@ export class CapricornDBCollection<T extends CapricornDocument> {
       if (CapricornDBError.isCapricornDBError(err)) {
         throw err
       }
-      throw new DatabaseError('Failed to delete documents.')
+      throw new DatabaseError('Failed to delete documents.', err)
     }
   }
 
@@ -492,7 +492,7 @@ export class CapricornDBCollection<T extends CapricornDocument> {
       if (CapricornDBError.isCapricornDBError(err)) {
         throw err
       }
-      throw new DatabaseError('Failed to create collection.')
+      throw new DatabaseError('Failed to create collection.', err)
     }
   }
 
