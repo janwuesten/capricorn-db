@@ -22,7 +22,7 @@ importers:
     dependencies:
       '@janwuesten/capricorndb-nodejs':
         specifier: workspace:*
-        version: link:../../packages/capricorndb-react-native
+        version: link:../../packages/capricorndb-nodejs
     devDependencies:
       '@janwuesten/eslint-config':
         specifier: workspace:*
@@ -92,14 +92,45 @@ importers:
         specifier: ^6.0.3
         version: 6.0.3
 
+  packages/capricorndb-react-hooks:
+    dependencies:
+      '@janwuesten/capricorndb-core':
+        specifier: workspace:*
+        version: link:../capricorndb-core
+      react:
+        specifier: ^19.0.0
+        version: 19.2.8
+    devDependencies:
+      '@janwuesten/eslint-config':
+        specifier: workspace:*
+        version: link:../eslint-config
+      '@types/node':
+        specifier: ^25.8.0
+        version: 25.8.0
+      '@types/react':
+        specifier: ^19.2.18
+        version: 19.2.18
+      eslint:
+        specifier: ^9.0.0
+        version: 9.39.4
+      tsc-alias:
+        specifier: ^1.8.17
+        version: 1.8.17
+      typescript:
+        specifier: ^6.0.3
+        version: 6.0.3
+
   packages/capricorndb-react-native:
     dependencies:
       '@janwuesten/capricorndb-core':
         specifier: workspace:*
         version: link:../capricorndb-core
+      '@janwuesten/capricorndb-react-hooks':
+        specifier: workspace:*
+        version: link:../capricorndb-react-hooks
       react-native-nitro-sqlite:
         specifier: ^9.7.0
-        version: 9.7.0(react-native-nitro-modules@0.36.3(react-native@0.86.2(@babel/core@7.29.0)(react@19.2.8))(react@19.2.8))(react-native@0.86.2(@babel/core@7.29.0)(react@19.2.8))(react@19.2.8)(reflect-metadata@0.2.2)
+        version: 9.7.0(react-native-nitro-modules@0.36.3(react-native@0.86.2(@babel/core@7.29.0)(@types/react@19.2.18)(react@19.2.8))(react@19.2.8))(react-native@0.86.2(@babel/core@7.29.0)(@types/react@19.2.18)(react@19.2.8))(react@19.2.8)(reflect-metadata@0.2.2)
     devDependencies:
       '@janwuesten/eslint-config':
         specifier: workspace:*
@@ -736,6 +767,9 @@ packages:
   '@types/node@25.8.0':
     resolution: {integrity: sha512-TCFSk8IZh+iLX1xtksoBVtdmgL+1IX0fC9BeU4QqFSuNdN/K+HUlhqOzEmSYYpZUVsLYcPqc9KX+60iDuninSQ==}
 
+  '@types/react@19.2.18':
+    resolution: {integrity: sha512-AnzbBERsrLKtk2XSfTbYRLjQPdy116Sty4q+T+Bp3IC4l6jNBvreVPAHmpq9qhXQM7CXZPjLVmGMw9sy+hxQ3w==}
+
   '@types/stack-utils@2.0.3':
     resolution: {integrity: sha512-9aEbYZ3TbYMznPdcdr3SmIrLXwC/AKZXQeCf9Pgao5CKb8CyHuEX5jzWPTkvregvhRJHcpRO6BFoGW9ycaOkYw==}
 
@@ -1101,6 +1135,9 @@ packages:
   cross-spawn@7.0.6:
     resolution: {integrity: sha512-uV2QOWP2nWzsy2aMp8aRibhi9dlzF5Hgh5SHaB9OiTGEyDTiJJyx0uy51QXdyWbtAHNua4XJzUKca3OzKUd3vA==}
     engines: {node: '>= 8'}
+
+  csstype@3.2.3:
+    resolution: {integrity: sha512-z1HGKcYy2xA8AGQfwrn0PAy+PB7X/GSj3UVJW9qKyn43xWa+gl5nXmU4qqLMRzWVLFC8KusUX8T/0kCiOYpAIQ==}
 
   data-view-buffer@1.0.2:
     resolution: {integrity: sha512-EmKO5V3OLXh1rtK2wgXRansaK1/mtVdTUEiEI0W8RkvgT05kfxaH29PliLnpLP73yYO6142Q72QNa8Wx/A5CqQ==}
@@ -3512,12 +3549,14 @@ snapshots:
 
   '@react-native/normalize-colors@0.86.2': {}
 
-  '@react-native/virtualized-lists@0.86.2(react-native@0.86.2(@babel/core@7.29.0)(react@19.2.8))(react@19.2.8)':
+  '@react-native/virtualized-lists@0.86.2(@types/react@19.2.18)(react-native@0.86.2(@babel/core@7.29.0)(@types/react@19.2.18)(react@19.2.8))(react@19.2.8)':
     dependencies:
       invariant: 2.2.4
       nullthrows: 1.1.1
       react: 19.2.8
-      react-native: 0.86.2(@babel/core@7.29.0)(react@19.2.8)
+      react-native: 0.86.2(@babel/core@7.29.0)(@types/react@19.2.18)(react@19.2.8)
+    optionalDependencies:
+      '@types/react': 19.2.18
 
   '@sinclair/typebox@0.27.10': {}
 
@@ -3665,6 +3704,10 @@ snapshots:
   '@types/node@25.8.0':
     dependencies:
       undici-types: 7.24.6
+
+  '@types/react@19.2.18':
+    dependencies:
+      csstype: 3.2.3
 
   '@types/stack-utils@2.0.3': {}
 
@@ -4123,6 +4166,8 @@ snapshots:
       path-key: 3.1.1
       shebang-command: 2.0.0
       which: 2.0.2
+
+  csstype@3.2.3: {}
 
   data-view-buffer@1.0.2:
     dependencies:
@@ -5759,16 +5804,16 @@ snapshots:
 
   react-is@18.3.1: {}
 
-  react-native-nitro-modules@0.36.3(react-native@0.86.2(@babel/core@7.29.0)(react@19.2.8))(react@19.2.8):
+  react-native-nitro-modules@0.36.3(react-native@0.86.2(@babel/core@7.29.0)(@types/react@19.2.18)(react@19.2.8))(react@19.2.8):
     dependencies:
       react: 19.2.8
-      react-native: 0.86.2(@babel/core@7.29.0)(react@19.2.8)
+      react-native: 0.86.2(@babel/core@7.29.0)(@types/react@19.2.18)(react@19.2.8)
 
-  react-native-nitro-sqlite@9.7.0(react-native-nitro-modules@0.36.3(react-native@0.86.2(@babel/core@7.29.0)(react@19.2.8))(react@19.2.8))(react-native@0.86.2(@babel/core@7.29.0)(react@19.2.8))(react@19.2.8)(reflect-metadata@0.2.2):
+  react-native-nitro-sqlite@9.7.0(react-native-nitro-modules@0.36.3(react-native@0.86.2(@babel/core@7.29.0)(@types/react@19.2.18)(react@19.2.8))(react@19.2.8))(react-native@0.86.2(@babel/core@7.29.0)(@types/react@19.2.18)(react@19.2.8))(react@19.2.8)(reflect-metadata@0.2.2):
     dependencies:
       react: 19.2.8
-      react-native: 0.86.2(@babel/core@7.29.0)(react@19.2.8)
-      react-native-nitro-modules: 0.36.3(react-native@0.86.2(@babel/core@7.29.0)(react@19.2.8))(react@19.2.8)
+      react-native: 0.86.2(@babel/core@7.29.0)(@types/react@19.2.18)(react@19.2.8)
+      react-native-nitro-modules: 0.36.3(react-native@0.86.2(@babel/core@7.29.0)(@types/react@19.2.18)(react@19.2.8))(react@19.2.8)
       typeorm: 0.3.27(reflect-metadata@0.2.2)
     transitivePeerDependencies:
       - '@google-cloud/spanner'
@@ -5791,7 +5836,7 @@ snapshots:
       - ts-node
       - typeorm-aurora-data-api-driver
 
-  react-native@0.86.2(@babel/core@7.29.0)(react@19.2.8):
+  react-native@0.86.2(@babel/core@7.29.0)(@types/react@19.2.18)(react@19.2.8):
     dependencies:
       '@react-native/assets-registry': 0.86.2
       '@react-native/codegen': 0.86.2(@babel/core@7.29.0)
@@ -5799,7 +5844,7 @@ snapshots:
       '@react-native/gradle-plugin': 0.86.2
       '@react-native/js-polyfills': 0.86.2
       '@react-native/normalize-colors': 0.86.2
-      '@react-native/virtualized-lists': 0.86.2(react-native@0.86.2(@babel/core@7.29.0)(react@19.2.8))(react@19.2.8)
+      '@react-native/virtualized-lists': 0.86.2(@types/react@19.2.18)(react-native@0.86.2(@babel/core@7.29.0)(@types/react@19.2.18)(react@19.2.8))(react@19.2.8)
       abort-controller: 3.0.0
       anser: 1.4.10
       ansi-regex: 5.0.1
@@ -5826,6 +5871,8 @@ snapshots:
       whatwg-fetch: 3.6.20
       ws: 7.5.13
       yargs: 17.7.2
+    optionalDependencies:
+      '@types/react': 19.2.18
     transitivePeerDependencies:
       - '@babel/core'
       - '@react-native-community/cli'

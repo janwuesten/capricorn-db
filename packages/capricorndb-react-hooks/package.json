@@ -1,8 +1,8 @@
 {
-  "name": "@janwuesten/capricorndb-react-native",
-  "version": "0.1.4",
+  "name": "@janwuesten/capricorndb-react-hooks",
+  "version": "0.1.3",
   "author": "Jan Wüsten",
-  "description": "CapricornDB for React Native runtimes.",
+  "description": "CapricornDB React hooks for CapricornDB React runtimes",
   "repository": {
     "type": "git",
     "url": "https://github.com/janwuesten/capricorn-db"
@@ -26,22 +26,24 @@
   "keywords": [
     "nosql",
     "database",
+    "react",
     "react-native",
-    "typescript"
+    "typescript",
+    "capricorndb"
   ],
   "devDependencies": {
     "@janwuesten/eslint-config": "workspace:*",
     "@types/node": "^25.8.0",
+    "@types/react": "^19.2.18",
     "eslint": "^9.0.0",
     "tsc-alias": "^1.8.17",
     "typescript": "^6.0.3"
   },
   "types": "dist/index.d.ts",
   "dependencies": {
-    "@janwuesten/capricorndb-core": "workspace:*",
-    "@janwuesten/capricorndb-react-hooks": "workspace:*"
+    "@janwuesten/capricorndb-core": "workspace:*"
   },
   "peerDependencies": {
-    "react-native-nitro-sqlite": "^9.7.0"
+    "react": "^19.0.0"
   }
 }
