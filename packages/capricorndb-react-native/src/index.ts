@@ -1,4 +1,5 @@
 export * from '@janwuesten/capricorndb-core'
+export * from '@janwuesten/capricorndb-react-hooks'
 import { CapricornDB } from '@janwuesten/capricorndb-core'
 import { CapricornDBService } from './classes/service'
 import { open } from 'react-native-nitro-sqlite'
