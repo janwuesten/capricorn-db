@@ -7,6 +7,7 @@ The following versions will receive security updates. Make sure to keep your pro
 | Version | Supported          |
 | ------- | ------------------ |
 | 0.1.x   | :white_check_mark: |
+| 0.2.x   | :white_check_mark: |
 
 ## Reporting a Vulnerability
 
