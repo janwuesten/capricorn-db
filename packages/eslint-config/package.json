@@ -2,6 +2,7 @@
   "name": "@janwuesten/eslint-config",
   "version": "1.0.0",
   "type": "module",
+  "private": true,
   "exports": {
     "./base": "./base.js",
     "./typescript": "./typescript.js",
