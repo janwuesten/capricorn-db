@@ -273,4 +273,25 @@ describe('capricorn-db', () => {
     expect(result.length).toBe(100)
     expect(result[0].number).toBe(99)
   })
+  it('should allow multiple order clauses', async () => {
+    const collection = capricorn.collection<TestDocument>('order-test')
+    await collection.insertMany([
+      { name: 'Zoe', age: 30, flags: ['active'], address: { street: '123 Main St', city: 'Anytown' } },
+      { name: 'Zoe', age: 25, flags: ['active'], address: { street: '456 Elm St', city: 'Othertown' } },
+      { name: 'Alice', age: 35, flags: ['inactive'], address: { street: '789 Oak St', city: 'Sometown' } }
+    ])
+    const query = collection.createQuery(
+      order('name', 'asc'),
+      order('age', 'desc')
+    )
+    console.log('Query:', query.getSQLAndParams())
+    const result = await collection.find(query)
+    expect(result).toBeDefined()
+    expect(result.length).toBe(3)
+    expect(result[0].name).toBe('Alice')
+    expect(result[1].name).toBe('Zoe')
+    expect(result[1].age).toBe(30)
+    expect(result[2].name).toBe('Zoe')
+    expect(result[2].age).toBe(25)
+  })
 })
