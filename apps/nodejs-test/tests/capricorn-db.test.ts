@@ -34,7 +34,7 @@ describe('capricorn-db', () => {
     }
     const insertedDocument = await collection.insertOne(document)
     expect(insertedDocument).toBeDefined()
-    expect(insertedDocument.id).toBeDefined()
+    expect(insertedDocument._id).toBeDefined()
     expect(insertedDocument.name).toBe(document.name)
     expect(insertedDocument.age).toBe(document.age)
     expect(insertedDocument.flags).toEqual(document.flags)
@@ -49,7 +49,7 @@ describe('capricorn-db', () => {
     expect(insertedDocuments).toBeDefined()
     expect(insertedDocuments.length).toBe(documents.length)
     for (let i = 0; i < documents.length; i++) {
-      expect(insertedDocuments[i].id).toBeDefined()
+      expect(insertedDocuments[i]._id).toBeDefined()
       expect(insertedDocuments[i].name).toBe(documents[i].name)
       expect(insertedDocuments[i].age).toBe(documents[i].age)
       expect(insertedDocuments[i].flags).toEqual(documents[i].flags)
@@ -58,8 +58,8 @@ describe('capricorn-db', () => {
   })
   it('should insert document with id', async () => {
     const collection = capricorn.collection<TestDocument>('test')
-    const document: TestDocument & { id: string } = {
-      id: await capricorn.newDocumentID(),
+    const document: TestDocument & { _id: string } = {
+      _id: await capricorn.newDocumentID(),
       name: 'Eve',
       age: 22,
       flags: ['active', 'new'],
@@ -67,7 +67,7 @@ describe('capricorn-db', () => {
     }
     const insertedDocument = await collection.insertOne(document)
     expect(insertedDocument).toBeDefined()
-    expect(insertedDocument.id).toBe(document.id)
+    expect(insertedDocument._id).toBe(document._id)
     expect(insertedDocument.name).toBe(document.name)
     expect(insertedDocument.age).toBe(document.age)
     expect(insertedDocument.flags).toEqual(document.flags)
@@ -83,10 +83,10 @@ describe('capricorn-db', () => {
     }
     const insertedDocument = await collection.insertOne(document)
     const foundDocument = await collection.findOne({
-      id: insertedDocument.id
+      _id: insertedDocument._id
     })
     expect(foundDocument).toBeDefined()
-    expect(foundDocument?.id).toBe(insertedDocument.id)
+    expect(foundDocument?._id).toBe(insertedDocument._id)
     expect(foundDocument?.name).toBe(document.name)
     expect(foundDocument?.age).toBe(document.age)
     expect(foundDocument?.flags).toEqual(document.flags)
@@ -125,8 +125,8 @@ describe('capricorn-db', () => {
       flags: ['active'],
       address: { street: '456 Elm St', city: 'Othertown' }
     })
-    await collection.updateOne({ id: insertedDocument.id }, { age: 20 })
-    const updatedDocument = await collection.findOne({ id: insertedDocument.id })
+    await collection.updateOne({ _id: insertedDocument._id }, { age: 20 })
+    const updatedDocument = await collection.findOne({ _id: insertedDocument._id })
     expect(updatedDocument).toBeDefined()
     expect(updatedDocument?.age).toBe(20)
   })
@@ -171,14 +171,14 @@ describe('capricorn-db', () => {
     try {
       await capricorn.withTransaction(async () => {
         await collection.insertOne({
-          id: newID,
+          _id: newID,
           name: 'Simon',
           age: 45,
           flags: ['inactive'],
           address: { street: '654 Pine St', city: 'Oldtown' }
         } as WithCapricornID<TestDocument>)
         await collection.insertOne({
-          id: 'invalid-id-to-fail',
+          _id: 'invalid-id-to-fail',
           name: 'Charlie',
           age: 23,
           flags: ['inactive'],
@@ -187,7 +187,7 @@ describe('capricorn-db', () => {
       })
       /* eslint-disable no-empty */
     } catch {}
-    const hopefullyMissingDocument = await collection.findOne({ id: newID })
+    const hopefullyMissingDocument = await collection.findOne({ _id: newID })
     expect(hopefullyMissingDocument).toBeNull()
   })
   it('should perform 10000 insertions in under 1 second', async () => {

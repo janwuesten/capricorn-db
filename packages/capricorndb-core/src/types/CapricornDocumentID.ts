@@ -1,5 +1,5 @@
 export type CapricornDocumentID = string
-export type WithCapricornID<T> = T & { id: CapricornDocumentID }
+export type WithCapricornID<T> = T & { _id: CapricornDocumentID }
 export const isValidCapricornDocumentID = (value: unknown): value is CapricornDocumentID => {
   if (typeof value !== 'string') {
     return false

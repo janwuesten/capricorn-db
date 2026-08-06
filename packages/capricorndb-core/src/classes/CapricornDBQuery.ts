@@ -18,7 +18,7 @@ export class CapricornDBQuery<T extends CapricornDocument = CapricornDocument> {
   }
 
   /* @internal */
-  where(field: FlatKey<T> | 'id', operator: CapricornDBQueryOperator, value: unknown): CapricornDBQuery<T> {
+  where(field: FlatKey<T> | '_id', operator: CapricornDBQueryOperator, value: unknown): CapricornDBQuery<T> {
     this._conditions.push({ type: 'default', field: field as string, operator, value } as CapricornDBQueryConditionDefault)
     return this
   }
@@ -45,7 +45,7 @@ export class CapricornDBQuery<T extends CapricornDocument = CapricornDocument> {
         }
         case 'default': {
           const _condition = condition as CapricornDBQueryConditionDefault
-          const field = _condition.field == 'id' ? 'id' : `document->>'${_condition.field}'`
+          const field = _condition.field == '_id' ? 'id' : `document->>'${_condition.field}'`
           switch (_condition.operator) {
             case 'eq':
               sqlParts.push(`${field} = ?`)
@@ -186,7 +186,7 @@ export const createQuery = <T extends CapricornDocument>(...queries: CapricornDB
  *   where('address.city', 'eq', 'Sometown')
  * )
  */
-export const where = <T extends CapricornDocument>(field: FlatKey<T> | 'id', operator: CapricornDBQueryOperator, value: unknown): CapricornDBQuery<T> => {
+export const where = <T extends CapricornDocument>(field: FlatKey<T> | '_id', operator: CapricornDBQueryOperator, value: unknown): CapricornDBQuery<T> => {
   return new CapricornDBQuery<T>().where(field, operator, value)
 }
 
