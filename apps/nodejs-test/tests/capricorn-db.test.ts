@@ -284,7 +284,6 @@ describe('capricorn-db', () => {
       order('name', 'asc'),
       order('age', 'desc')
     )
-    console.log('Query:', query.getSQLAndParams())
     const result = await collection.find(query)
     expect(result).toBeDefined()
     expect(result.length).toBe(3)
