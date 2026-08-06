@@ -22,7 +22,7 @@ export type CapricornDBQueryOperator =
   'array-not-contains' |
   'array-not-contains-any'
 export interface CapricornDBQueryCondition {
-  type: 'default' | 'and' | 'or'
+  type: 'default' | 'and' | 'or' | 'order' | 'limit' | 'offset'
 }
 export interface CapricornDBQueryConditionDefault extends CapricornDBQueryCondition {
   type: 'default'
@@ -33,4 +33,17 @@ export interface CapricornDBQueryConditionDefault extends CapricornDBQueryCondit
 export interface CapricornDBQueryConditionLogical extends CapricornDBQueryCondition {
   type: 'and' | 'or'
   queries: CapricornDBQuery[]
+}
+export interface CapricornDBQueryConditionOrder extends CapricornDBQueryCondition {
+  type: 'order'
+  field: string
+  direction: 'asc' | 'desc'
+}
+export interface CapricornDBQueryConditionLimit extends CapricornDBQueryCondition {
+  type: 'limit'
+  limit: number
+}
+export interface CapricornDBQueryConditionOffset extends CapricornDBQueryCondition {
+  type: 'offset'
+  offset: number
 }

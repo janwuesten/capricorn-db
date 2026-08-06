@@ -1,4 +1,4 @@
-import { and, CapricornDB, createCapricornDB, or, where, WithCapricornID } from '@janwuesten/capricorndb-nodejs'
+import { and, CapricornDB, createCapricornDB, limit, offset, or, order, where, WithCapricornID } from '@janwuesten/capricorndb-nodejs'
 
 interface TestDocument {
   name: string
@@ -238,5 +238,39 @@ describe('capricorn-db', () => {
     await collection.deleteMany({})
     const count = await collection.find({})
     expect(count.length).toBe(0)
+  })
+  it('should limit the number of results returned', async () => {
+    const collection = capricorn.collection<TestDocumentForSpeed>('speedtest')
+    await collection.insertMany(Array.from({ length: 100 }, (_, i) => ({ number: i })))
+    const query = collection.createQuery(
+      where('number', 'gte', 0),
+      limit(10)
+    )
+    const result = await collection.find(query)
+    expect(result).toBeDefined()
+    expect(result.length).toBe(10)
+  })
+  it('should offset the results returned', async () => {
+    const collection = capricorn.collection<TestDocumentForSpeed>('speedtest')
+    const query = collection.createQuery(
+      where('number', 'gte', 0),
+      limit(10),
+      offset(10)
+    )
+    const result = await collection.find(query)
+    expect(result).toBeDefined()
+    expect(result.length).toBe(10)
+    expect(result[0].number).toBe(10)
+  })
+  it('should order the results returned', async () => {
+    const collection = capricorn.collection<TestDocumentForSpeed>('speedtest')
+    const query = collection.createQuery(
+      where('number', 'gte', 0),
+      order('number', 'desc')
+    )
+    const result = await collection.find(query)
+    expect(result).toBeDefined()
+    expect(result.length).toBe(100)
+    expect(result[0].number).toBe(99)
   })
 })

@@ -1,4 +1,4 @@
-import { CapricornDBQueryCondition, CapricornDBQueryConditionDefault, CapricornDBQueryConditionLogical, CapricornDBQueryOperator } from '@/interfaces/CapricornDBQueryCondition'
+import { CapricornDBQueryCondition, CapricornDBQueryConditionDefault, CapricornDBQueryConditionLimit, CapricornDBQueryConditionLogical, CapricornDBQueryConditionOffset, CapricornDBQueryConditionOrder, CapricornDBQueryOperator } from '@/interfaces/CapricornDBQueryCondition'
 import { CapricornDocument } from '@/types/CapricornDocument'
 import { FlatKey } from '@/types/FlatKey'
 
@@ -24,23 +24,52 @@ export class CapricornDBQuery<T extends CapricornDocument = CapricornDocument> {
   }
 
   /* @internal */
-  getSQLAndParams(first: boolean = false): ({ sql: string, params: unknown[] }) | null {
+  order(field: FlatKey<T> | '_id', direction: 'asc' | 'desc'): CapricornDBQuery<T> {
+    this._conditions.push({ type: 'order', field: field as string, direction } as CapricornDBQueryConditionOrder)
+    return this
+  }
+
+  /* @internal */
+  limit(limit: number): CapricornDBQuery<T> {
+    this._conditions.push({ type: 'limit', limit } as CapricornDBQueryConditionLimit)
+    return this
+  }
+
+  /* @internal */
+  offset(offset: number): CapricornDBQuery<T> {
+    this._conditions.push({ type: 'offset', offset } as CapricornDBQueryConditionOffset)
+    return this
+  }
+
+  /* @internal */
+  private _build(): { where: string | null, params: unknown[], order: string[], limit: number | null, offset: number | null } {
     const sqlParts: string[] = []
+    const orderParts: string[] = []
+    let limitClause: number | null = null
+    let offsetClause: number | null = null
     const params: unknown[] = []
     for (const condition of this._conditions) {
       switch (condition.type) {
-        case 'and': {
-          const _condition = condition as CapricornDBQueryConditionLogical
-          const parts = _condition.queries.map((q) => q.getSQLAndParams()).filter((p): p is { sql: string, params: unknown[] } => p !== null)
-          sqlParts.push(parts.map((p) => `(${p.sql})`).join(' AND '))
-          params.push(...parts.flatMap((p) => p.params))
-          break
-        }
+        case 'and':
         case 'or': {
           const _condition = condition as CapricornDBQueryConditionLogical
-          const parts = _condition.queries.map((q) => q.getSQLAndParams()).filter((p): p is { sql: string, params: unknown[] } => p !== null)
-          sqlParts.push(parts.map((p) => `(${p.sql})`).join(' OR '))
-          params.push(...parts.flatMap((p) => p.params))
+          const joiner = condition.type === 'and' ? ' AND ' : ' OR '
+          const built = _condition.queries.map((q) => q._build())
+          const subWheres = built.filter((b) => b.where !== null).map((b) => `(${b.where})`)
+          if (subWheres.length > 0) {
+            sqlParts.push(subWheres.join(joiner))
+          }
+          // ORDER BY / LIMIT / OFFSET are query-level clauses, so lift them out of the boolean group.
+          for (const b of built) {
+            params.push(...b.params)
+            orderParts.push(...b.order)
+            if (b.limit !== null) {
+              limitClause = b.limit
+            }
+            if (b.offset !== null) {
+              offsetClause = b.offset
+            }
+          }
           break
         }
         case 'default': {
@@ -130,20 +159,61 @@ export class CapricornDBQuery<T extends CapricornDocument = CapricornDocument> {
           }
           break
         }
-      }
-    }
-    if (sqlParts.length === 0) {
-      return null
-    }
-    if (first) {
-      return {
-        sql: `WHERE ${sqlParts.join(' AND ')}`,
-        params
+        case 'order': {
+          const _condition = condition as CapricornDBQueryConditionOrder
+          const field = _condition.field == '_id' ? 'id' : `document->>'${_condition.field}'`
+          orderParts.push(`${field} ${_condition.direction.toUpperCase()}`)
+          break
+        }
+        case 'limit': {
+          const _condition = condition as CapricornDBQueryConditionLimit
+          if (typeof _condition.limit !== 'number' || _condition.limit < 0) {
+            throw new Error(`Invalid limit value: ${_condition.limit}. Limit must be a non-negative number.`)
+          }
+          limitClause = _condition.limit
+          break
+        }
+        case 'offset': {
+          const _condition = condition as CapricornDBQueryConditionOffset
+          if (typeof _condition.offset !== 'number' || _condition.offset < 0) {
+            throw new Error(`Invalid offset value: ${_condition.offset}. Offset must be a non-negative number.`)
+          }
+          offsetClause = _condition.offset
+          break
+        }
       }
     }
     return {
-      sql: sqlParts.join(' AND '),
-      params
+      where: sqlParts.length > 0 ? sqlParts.join(' AND ') : null,
+      params,
+      order: orderParts,
+      limit: limitClause,
+      offset: offsetClause
+    }
+  }
+
+  /* @internal */
+  getSQLAndParams(first: boolean = false): ({ sql: string, params: unknown[] }) | null {
+    const built = this._build()
+    if (built.where === null && built.order.length === 0 && built.limit === null && built.offset === null) {
+      return null
+    }
+    const clauses: string[] = []
+    if (built.where !== null) {
+      clauses.push(`${first ? 'WHERE ' : ''}${built.where}`)
+    }
+    if (built.order.length > 0) {
+      clauses.push(`ORDER BY ${built.order.join(', ')}`)
+    }
+    if (built.limit !== null) {
+      clauses.push(`LIMIT ${built.limit}`)
+    }
+    if (built.offset !== null) {
+      clauses.push(`OFFSET ${built.offset}`)
+    }
+    return {
+      sql: clauses.join(' '),
+      params: built.params
     }
   }
 }
@@ -221,4 +291,56 @@ export const and = <T extends CapricornDocument>(...queries: CapricornDBQuery<T>
  */
 export const or = <T extends CapricornDocument>(...queries: CapricornDBQuery<T>[]): CapricornDBQuery<T> => {
   return new CapricornDBQuery<T>().or(...queries)
+}
+
+/**
+ * Creates an order condition for a query, specifying the field to order by and the direction (ascending or descending).
+ * @param field The field to order the results by. Use '_id' to order by the document's unique identifier.
+ * @param direction The direction to order the results, either 'asc' for ascending or 'desc' for descending.
+ * @returns A new instance of CapricornDBQuery with the specified order condition.
+ * @example
+ * const query = collection.createQuery(
+ *   order('age', 'asc')
+ * )
+ * @example
+ * const query = collection.createQuery(
+ *   order('name', 'desc')
+ * )
+ * @example
+ * const query = collection.createQuery(
+ *   order('_id', 'asc')
+ * )
+ */
+export const order = <T extends CapricornDocument>(field: FlatKey<T> | '_id', direction: 'asc' | 'desc'): CapricornDBQuery<T> => {
+  return new CapricornDBQuery<T>().order(field, direction)
+}
+
+/**
+ * Creates a limit condition for a query, specifying the maximum number of documents to return.
+ * @param limit The maximum number of documents to return. Must be a non-negative number.
+ * @returns A new instance of CapricornDBQuery with the specified limit condition.
+ * @example
+ * const query = collection.createQuery(
+ *   where('age', 'gte', 30),
+ *   limit(5)
+ * )
+ */
+export const limit = <T extends CapricornDocument>(limit: number): CapricornDBQuery<T> => {
+  return new CapricornDBQuery<T>().limit(limit)
+}
+
+
+/**
+ * Creates an offset condition for a query, specifying the number of documents to skip before starting to return results.
+ * @param offset The number of documents to skip. Must be a non-negative number.
+ * @returns A new instance of CapricornDBQuery with the specified offset condition.
+ * @example
+ * const query = collection.createQuery(
+ *   order('name', 'asc'),
+ *   limit(20),
+ *   offset(10)
+ * )
+ */
+export const offset = <T extends CapricornDocument>(offset: number): CapricornDBQuery<T> => {
+  return new CapricornDBQuery<T>().offset(offset)
 }
