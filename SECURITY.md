@@ -10,5 +10,4 @@ The following versions will receive security updates. Make sure to keep your pro
 
 ## Reporting a Vulnerability
 
-To report a vulnerability open an issue.
-CapricornDB is a package for local development, so no additional "private way" of reporting vulnerabilities is provided for now.
+To report a vulnerability use the "Report a vulnerability" button on the [GitHub security tab](https://github.com/janwuesten/capricorn-db/security).
