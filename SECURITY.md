@@ -4,10 +4,10 @@
 
 The following versions will receive security updates. Make sure to keep your project up to date with a supported version.
 
-| Version | Supported          |
-| ------- | ------------------ |
-| 0.1.x   | :white_check_mark: |
-| 0.2.x   | :white_check_mark: |
+| Version | Supported          | Timeframe       |
+| ------- | ------------------ | --------------- |
+| 0.1.x   | :white_check_mark: | until Oct. 2026 |
+| 0.2.x   | :white_check_mark: |                 |
 
 ## Reporting a Vulnerability
 
