@@ -2,6 +2,7 @@
   "name": "@janwuesten/nodejs-test",
   "version": "0.1.0",
   "description": "",
+  "private": true,
   "type": "module",
   "scripts": {
     "test": "cross-env NODE_OPTIONS=--experimental-vm-modules jest",
