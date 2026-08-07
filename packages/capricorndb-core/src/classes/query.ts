@@ -1,6 +1,6 @@
-import { CapricornDBQueryCondition, CapricornDBQueryConditionDefault, CapricornDBQueryConditionLimit, CapricornDBQueryConditionLogical, CapricornDBQueryConditionOffset, CapricornDBQueryConditionOrder, CapricornDBQueryOperator } from '@/interfaces/CapricornDBQueryCondition'
-import { CapricornDocument } from '@/types/CapricornDocument'
-import { FlatKey } from '@/types/FlatKey'
+import { CapricornDBQueryCondition, CapricornDBQueryConditionDefault, CapricornDBQueryConditionLimit, CapricornDBQueryConditionLogical, CapricornDBQueryConditionOffset, CapricornDBQueryConditionOrder, CapricornDBQueryOperator } from '@/interfaces/query-condition'
+import { CapricornDocument } from '@/types/document'
+import { FlatKey } from '@/types/flat-key'
 import { CapricornDBSortDirection } from '@/types/sort'
 
 export class CapricornDBQuery<T extends CapricornDocument = CapricornDocument> {

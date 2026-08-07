@@ -1,5 +1,5 @@
 import { PendingTransactionError } from '@/errors/transaction'
-import { CapricornDB } from './CapricornDB'
+import { CapricornDB } from './capricorn'
 import { CapricornDBError } from '@/errors/error'
 
 export type CapricornDBTransactionCallback = () => Promise<void>

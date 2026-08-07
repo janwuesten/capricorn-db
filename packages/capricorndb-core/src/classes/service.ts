@@ -1,4 +1,4 @@
-import { CapricornDocumentID } from '@/types/CapricornDocumentID'
+import { CapricornDocumentID } from '@/types/document'
 
 export abstract class CapricornDBCoreService {
   public abstract listTables(): Promise<string[]>

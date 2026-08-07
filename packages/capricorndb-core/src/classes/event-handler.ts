@@ -1,6 +1,5 @@
-import { CapricornDocument } from '@/types/CapricornDocument'
-import { WithCapricornID } from '@/types/CapricornDocumentID'
-import { CollectionName } from '@/types/CollectionName'
+import { WithCapricornID, CapricornDocument } from '@/types/document'
+import { CollectionName } from '@/types/collection'
 
 export class CapricornDBEventHandler {
   /** @internal */

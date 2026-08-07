@@ -1,4 +1,4 @@
-import { CapricornDBQuery } from '@/classes/CapricornDBQuery'
+import { CapricornDBQuery } from '@/classes/query'
 import { CapricornDBSortDirection } from '@/types/sort'
 
 export type CapricornDBQueryOperator =

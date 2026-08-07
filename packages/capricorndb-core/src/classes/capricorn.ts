@@ -1,11 +1,10 @@
-import { CollectionName } from '@/types/CollectionName'
-import { CapricornDBCoreService } from './CapricornDBCoreService'
-import { CapricornDBCollection } from './CapricornDBCollection'
-import { CapricornDocument } from '@/types/CapricornDocument'
-import { CapricornDocumentID } from '@/types/CapricornDocumentID'
-import { CapricornDBTransaction, CapricornDBTransactionCallback } from './CapricornDBTransaction'
+import { CollectionName } from '@/types/collection'
+import { CapricornDBCoreService } from './service'
+import { CapricornDBCollection } from './collection'
+import { CapricornDocument, CapricornDocumentID } from '@/types/document'
+import { CapricornDBTransaction, CapricornDBTransactionCallback } from './transaction'
 import { DatabaseError } from '@/errors/database'
-import { CapricornDBEventHandler } from './CapricornDBEventHandler'
+import { CapricornDBEventHandler } from './event-handler'
 
 interface CapricornDBCreateOptions {
   service: CapricornDBCoreService

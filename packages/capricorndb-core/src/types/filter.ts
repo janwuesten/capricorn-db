@@ -1,6 +1,6 @@
-import { CapricornDBQuery } from '@/classes/CapricornDBQuery'
-import { WithCapricornID } from './CapricornDocumentID'
-import { CapricornDocument } from './CapricornDocument'
+import { CapricornDBQuery } from '@/classes/query'
+import { WithCapricornID } from './document'
+import { CapricornDocument } from './document'
 
 export type CapricornDocumentFilter<T extends CapricornDocument> = {
   [K in keyof T]?: T[K] extends string | number | boolean | null ? T[K] : never
