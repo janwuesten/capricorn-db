@@ -1,4 +1,4 @@
-import { and, CapricornDB, createCapricornDB, limit, offset, or, order, where, WithCapricornID } from '@janwuesten/capricorndb-nodejs'
+import { and, CapricornDB, createCapricornDB, or, where } from '@janwuesten/capricorndb-nodejs'
 
 interface TestDocument {
   name: string
@@ -176,14 +176,14 @@ describe('capricorn-db', () => {
           age: 45,
           flags: ['inactive'],
           address: { street: '654 Pine St', city: 'Oldtown' }
-        } as WithCapricornID<TestDocument>)
+        })
         await collection.insertOne({
           _id: 'invalid-id-to-fail',
           name: 'Charlie',
           age: 23,
           flags: ['inactive'],
           address: { street: '654 Pine St', city: 'Oldtown' }
-        } as WithCapricornID<TestDocument>)
+        })
       })
       /* eslint-disable no-empty */
     } catch {}
@@ -243,48 +243,54 @@ describe('capricorn-db', () => {
     const collection = capricorn.collection<TestDocumentForSpeed>('speedtest')
     await collection.insertMany(Array.from({ length: 100 }, (_, i) => ({ number: i })))
     const query = collection.createQuery(
-      where('number', 'gte', 0),
-      limit(10)
+      where('number', 'gte', 0)
     )
-    const result = await collection.find(query)
+    const result = await collection.find(query, {
+      limit: 10
+    })
     expect(result).toBeDefined()
     expect(result.length).toBe(10)
   })
   it('should offset the results returned', async () => {
     const collection = capricorn.collection<TestDocumentForSpeed>('speedtest')
     const query = collection.createQuery(
-      where('number', 'gte', 0),
-      limit(10),
-      offset(10)
+      where('number', 'gte', 0)
     )
-    const result = await collection.find(query)
+    const result = await collection.find(query, {
+      limit: 10,
+      offset: 10
+    })
     expect(result).toBeDefined()
     expect(result.length).toBe(10)
     expect(result[0].number).toBe(10)
   })
-  it('should order the results returned', async () => {
+  it('should sort the results returned', async () => {
     const collection = capricorn.collection<TestDocumentForSpeed>('speedtest')
     const query = collection.createQuery(
-      where('number', 'gte', 0),
-      order('number', 'desc')
+      where('number', 'gte', 0)
     )
-    const result = await collection.find(query)
+    const result = await collection.find(query, {
+      sort: {
+        number: 'desc'
+      }
+    })
     expect(result).toBeDefined()
     expect(result.length).toBe(100)
     expect(result[0].number).toBe(99)
   })
-  it('should allow multiple order clauses', async () => {
-    const collection = capricorn.collection<TestDocument>('order-test')
+  it('should allow multiple sort clauses', async () => {
+    const collection = capricorn.collection<TestDocument>('sort-test')
     await collection.insertMany([
       { name: 'Zoe', age: 30, flags: ['active'], address: { street: '123 Main St', city: 'Anytown' } },
       { name: 'Zoe', age: 25, flags: ['active'], address: { street: '456 Elm St', city: 'Othertown' } },
       { name: 'Alice', age: 35, flags: ['inactive'], address: { street: '789 Oak St', city: 'Sometown' } }
     ])
-    const query = collection.createQuery(
-      order('name', 'asc'),
-      order('age', 'desc')
-    )
-    const result = await collection.find(query)
+    const result = await collection.find({}, {
+      sort: {
+        name: 'asc',
+        age: 'desc'
+      }
+    })
     expect(result).toBeDefined()
     expect(result.length).toBe(3)
     expect(result[0].name).toBe('Alice')

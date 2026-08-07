@@ -10,6 +10,8 @@ import { InvalidCollectionNameError } from '@/errors/collection'
 import { CapricornDBError } from '@/errors/error'
 import { InvalidQueryError } from '@/errors/query'
 import { FlatKey } from '@/types/FlatKey'
+import { FindOptions } from '@/types/find'
+import { CapricornDBSortDirection } from '@/types/sort'
 
 export class CapricornDBCollection<T extends CapricornDocument> {
   private _capricorn: CapricornDB
@@ -46,7 +48,7 @@ export class CapricornDBCollection<T extends CapricornDocument> {
    * const newDocument = await collection.insertOne({ name: 'Alice', age: 30 })
    * console.log(newDocument._id) // Logs the generated ID of the inserted document
    */
-  public async insertOne(document: T): Promise<WithCapricornID<T>> {
+  public async insertOne(document: T & { _id?: string }): Promise<WithCapricornID<T>> {
     await this._createCollection()
     try {
       let id: string | null = null
@@ -91,7 +93,7 @@ export class CapricornDBCollection<T extends CapricornDocument> {
    * console.log(newDocuments[0]._id) // Logs the generated ID of the first inserted document
    * console.log(newDocuments[1]._id) // Logs 'custom-id-123'
    */
-  public async insertMany(documents: T[]): Promise<WithCapricornID<T>[]> {
+  public async insertMany(documents: (T & { _id?: string })[]): Promise<WithCapricornID<T>[]> {
     const isInsideeTransaction = this._capricorn.hasActiveTransaction
     try {
       if (!isInsideeTransaction) {
@@ -218,12 +220,25 @@ export class CapricornDBCollection<T extends CapricornDocument> {
    * const documents = await collection.find({ age: 30 })
    * console.log(documents.length) // Logs the number of found documents
    */
-  public async find(filter: CapricornDBFilter<T>): Promise<WithCapricornID<T>[]> {
+  public async find(filter: CapricornDBFilter<T>, options?: FindOptions<T>): Promise<WithCapricornID<T>[]> {
     if (!this._collectionExists()) {
       return []
     }
     try {
       if (filter instanceof CapricornDBQuery) {
+        if (options?.limit) {
+          filter.limit(options.limit)
+          if (options.offset) {
+            filter.offset(options.offset)
+          }
+        } else if (options?.offset) {
+          throw new InvalidQueryError('Offset cannot be used without a limit in find options.')
+        }
+        if (options?.sort) {
+          for (const [field, direction] of Object.entries(options.sort)) {
+            filter.order(field as '_id', direction as CapricornDBSortDirection)
+          }
+        }
         const query = filter.getSQLAndParams(true)
         const results = await this._capricorn.service.queryMultiple<{ id: string, document: string }>(`
           SELECT id, json(document) as document FROM "${this._databaseTableName}" ${query?.sql ?? ''}
@@ -237,16 +252,7 @@ export class CapricornDBCollection<T extends CapricornDocument> {
         })
       } else {
         if (Object.keys(filter).length === 0) {
-          const results = await this._capricorn.service.queryMultiple<{ id: string, document: string }>(`
-            SELECT id, json(document) as document FROM "${this._databaseTableName}"
-          `)
-          return results.map((result) => {
-            const document = JSON.parse(result.document) as T
-            return {
-              ...document,
-              _id: result.id
-            } as WithCapricornID<T>
-          })
+          return this.find(new CapricornDBQuery<T>(), options)
         }
         const query = new CapricornDBQuery<T>()
         for (const key in filter) {
@@ -255,7 +261,7 @@ export class CapricornDBCollection<T extends CapricornDocument> {
             query.where(key as FlatKey<T>, 'eq', value)
           }
         }
-        return this.find(query)
+        return this.find(query, options)
       }
     } catch (err) {
       if (CapricornDBError.isCapricornDBError(err)) {
@@ -278,7 +284,7 @@ export class CapricornDBCollection<T extends CapricornDocument> {
    * await collection.updateOne({ name: 'Alice' }, { age: 31 })
    * console.log('Document updated successfully')
    */
-  public async updateOne(filter: CapricornDBFilter<T>, update: Partial<T>): Promise<WithCapricornID<T>> {
+  public async updateOne(filter: CapricornDBFilter<T>, update: Partial<T & { _id?: string }>): Promise<WithCapricornID<T>> {
     try {
       const document = await this.findOne(filter)
       if (!document) {
@@ -313,7 +319,7 @@ export class CapricornDBCollection<T extends CapricornDocument> {
    * await collection.updateMany({ age: 30 }, { active: true })
    * console.log('Documents updated successfully')
    */
-  public async updateMany(filter: CapricornDBFilter<T>, update: Partial<T>): Promise<WithCapricornID<T>[]> {
+  public async updateMany(filter: CapricornDBFilter<T>, update: Partial<T & { _id?: string }>): Promise<WithCapricornID<T>[]> {
     const isInsideeTransaction = this._capricorn.hasActiveTransaction
     try {
       if (!isInsideeTransaction) {

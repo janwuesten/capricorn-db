@@ -1,4 +1,5 @@
 import { CapricornDBQuery } from '@/classes/CapricornDBQuery'
+import { CapricornDBSortDirection } from '@/types/sort'
 
 export type CapricornDBQueryOperator =
   'eq' |
@@ -37,7 +38,7 @@ export interface CapricornDBQueryConditionLogical extends CapricornDBQueryCondit
 export interface CapricornDBQueryConditionOrder extends CapricornDBQueryCondition {
   type: 'order'
   field: string
-  direction: 'asc' | 'desc'
+  direction: CapricornDBSortDirection
 }
 export interface CapricornDBQueryConditionLimit extends CapricornDBQueryCondition {
   type: 'limit'

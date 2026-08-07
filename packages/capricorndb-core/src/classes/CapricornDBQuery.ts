@@ -1,6 +1,7 @@
 import { CapricornDBQueryCondition, CapricornDBQueryConditionDefault, CapricornDBQueryConditionLimit, CapricornDBQueryConditionLogical, CapricornDBQueryConditionOffset, CapricornDBQueryConditionOrder, CapricornDBQueryOperator } from '@/interfaces/CapricornDBQueryCondition'
 import { CapricornDocument } from '@/types/CapricornDocument'
 import { FlatKey } from '@/types/FlatKey'
+import { CapricornDBSortDirection } from '@/types/sort'
 
 export class CapricornDBQuery<T extends CapricornDocument = CapricornDocument> {
   private _conditions: CapricornDBQueryCondition[] = []
@@ -24,7 +25,7 @@ export class CapricornDBQuery<T extends CapricornDocument = CapricornDocument> {
   }
 
   /* @internal */
-  order(field: FlatKey<T> | '_id', direction: 'asc' | 'desc'): CapricornDBQuery<T> {
+  order(field: FlatKey<T> | '_id', direction: CapricornDBSortDirection): CapricornDBQuery<T> {
     this._conditions.push({ type: 'order', field: field as string, direction } as CapricornDBQueryConditionOrder)
     return this
   }
@@ -291,56 +292,4 @@ export const and = <T extends CapricornDocument>(...queries: CapricornDBQuery<T>
  */
 export const or = <T extends CapricornDocument>(...queries: CapricornDBQuery<T>[]): CapricornDBQuery<T> => {
   return new CapricornDBQuery<T>().or(...queries)
-}
-
-/**
- * Creates an order condition for a query, specifying the field to order by and the direction (ascending or descending).
- * @param field The field to order the results by. Use '_id' to order by the document's unique identifier.
- * @param direction The direction to order the results, either 'asc' for ascending or 'desc' for descending.
- * @returns A new instance of CapricornDBQuery with the specified order condition.
- * @example
- * const query = collection.createQuery(
- *   order('age', 'asc')
- * )
- * @example
- * const query = collection.createQuery(
- *   order('name', 'desc')
- * )
- * @example
- * const query = collection.createQuery(
- *   order('_id', 'asc')
- * )
- */
-export const order = <T extends CapricornDocument>(field: FlatKey<T> | '_id', direction: 'asc' | 'desc'): CapricornDBQuery<T> => {
-  return new CapricornDBQuery<T>().order(field, direction)
-}
-
-/**
- * Creates a limit condition for a query, specifying the maximum number of documents to return.
- * @param limit The maximum number of documents to return. Must be a non-negative number.
- * @returns A new instance of CapricornDBQuery with the specified limit condition.
- * @example
- * const query = collection.createQuery(
- *   where('age', 'gte', 30),
- *   limit(5)
- * )
- */
-export const limit = <T extends CapricornDocument>(limit: number): CapricornDBQuery<T> => {
-  return new CapricornDBQuery<T>().limit(limit)
-}
-
-
-/**
- * Creates an offset condition for a query, specifying the number of documents to skip before starting to return results.
- * @param offset The number of documents to skip. Must be a non-negative number.
- * @returns A new instance of CapricornDBQuery with the specified offset condition.
- * @example
- * const query = collection.createQuery(
- *   order('name', 'asc'),
- *   limit(20),
- *   offset(10)
- * )
- */
-export const offset = <T extends CapricornDocument>(offset: number): CapricornDBQuery<T> => {
-  return new CapricornDBQuery<T>().offset(offset)
 }
