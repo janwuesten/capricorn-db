@@ -3,6 +3,7 @@ export * from '@/classes/collection'
 export * from '@/classes/query'
 export * from '@/classes/transaction'
 export * from '@/classes/capricorn'
+export * from '@/classes/instance'
 
 export * from '@/types/filter'
 export * from '@/types/document'

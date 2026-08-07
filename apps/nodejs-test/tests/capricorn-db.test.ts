@@ -1,4 +1,4 @@
-import { and, CapricornDB, createCapricornDB, or, where } from '@janwuesten/capricorndb-nodejs'
+import { and, CapricornDB, createCapricornDB, or, retrieveCapricornDB, where } from '@janwuesten/capricorndb-nodejs'
 
 interface TestDocument {
   name: string
@@ -298,5 +298,19 @@ describe('capricorn-db', () => {
     expect(result[1].age).toBe(30)
     expect(result[2].name).toBe('Zoe')
     expect(result[2].age).toBe(25)
+  })
+  it('should retrieve an existing CapricornDB instance by name', async () => {
+    const instance1 = await retrieveCapricornDB('test-instance')
+    expect(instance1).toBeDefined()
+    const instance2 = await retrieveCapricornDB('test-instance')
+    expect(instance2).toBeDefined()
+    expect(instance1).toBe(instance2)
+  })
+  it('should allow multiple named instances of CapricornDB', async () => {
+    const instance1 = await retrieveCapricornDB()
+    const instance2 = await retrieveCapricornDB('instance2')
+    expect(instance1).toBeDefined()
+    expect(instance2).toBeDefined()
+    expect(instance1).not.toBe(instance2)
   })
 })
