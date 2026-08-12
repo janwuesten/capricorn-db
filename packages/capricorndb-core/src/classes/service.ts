@@ -1,4 +1,4 @@
-import { CapricornDocumentID } from '@/types/CapricornDocumentID'
+import { CapricornDocumentID } from '@/types/document'
 
 export abstract class CapricornDBCoreService {
   public abstract listTables(): Promise<string[]>
@@ -12,4 +12,5 @@ export abstract class CapricornDBCoreService {
   public abstract update(query: string, params?: unknown[]): Promise<void>
   public abstract delete(query: string, params?: unknown[]): Promise<void>
   public abstract generateDocumentID(): Promise<CapricornDocumentID>
+  public abstract close(): Promise<void>
 }

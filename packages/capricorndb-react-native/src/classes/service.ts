@@ -91,4 +91,11 @@ export class CapricornDBService extends CapricornDBCoreService {
     const random = Array.from({ length: 16 }, () => Math.floor(Math.random() * 16).toString(16)).join('')
     return ts + random
   }
+  public async close(): Promise<void> {
+    try {
+      this.database.close()
+    } catch (error) {
+      throw new Error(error instanceof Error ? error.message : String(error))
+    }
+  }
 }

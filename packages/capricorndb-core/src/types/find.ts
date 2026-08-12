@@ -1,4 +1,4 @@
-import { CapricornDocument } from './CapricornDocument'
+import { CapricornDocument } from './document'
 
 export type FindOptions<T extends CapricornDocument> = {
   limit?: number

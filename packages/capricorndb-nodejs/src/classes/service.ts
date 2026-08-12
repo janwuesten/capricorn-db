@@ -1,4 +1,4 @@
-import { CapricornDBCoreService, CapricornDocumentID } from '@janwuesten/capricorndb-core'
+import { CapricornDBCoreService, CapricornDocumentID, DatabaseError } from '@janwuesten/capricorndb-core'
 import { DatabaseSync, SQLInputValue } from 'node:sqlite'
 import { randomBytes } from 'node:crypto'
 
@@ -92,5 +92,12 @@ export class CapricornDBService extends CapricornDBCoreService {
     const ts = Math.floor(Date.now() / 1000).toString(16)
     const random = randomBytes(8).toString('hex')
     return ts + random
+  }
+  public async close(): Promise<void> {
+    try {
+      this.database.close()
+    } catch (error) {
+      throw new DatabaseError('Failed to close the database connection.', error)
+    }
   }
 }

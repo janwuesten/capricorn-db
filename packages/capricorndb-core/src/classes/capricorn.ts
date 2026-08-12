@@ -1,11 +1,10 @@
-import { CollectionName } from '@/types/CollectionName'
-import { CapricornDBCoreService } from './CapricornDBCoreService'
-import { CapricornDBCollection } from './CapricornDBCollection'
-import { CapricornDocument } from '@/types/CapricornDocument'
-import { CapricornDocumentID } from '@/types/CapricornDocumentID'
-import { CapricornDBTransaction, CapricornDBTransactionCallback } from './CapricornDBTransaction'
+import { CollectionName } from '@/types/collection'
+import { CapricornDBCoreService } from './service'
+import { CapricornDBCollection } from './collection'
+import { CapricornDocument, CapricornDocumentID } from '@/types/document'
+import { CapricornDBTransaction, CapricornDBTransactionCallback } from './transaction'
 import { DatabaseError } from '@/errors/database'
-import { CapricornDBEventHandler } from './CapricornDBEventHandler'
+import { CapricornDBEventHandler } from './event-handler'
 
 interface CapricornDBCreateOptions {
   service: CapricornDBCoreService
@@ -19,6 +18,13 @@ export class CapricornDB<Service extends CapricornDBCoreService = CapricornDBCor
 
   /** @internal */
   eventHandler: CapricornDBEventHandler = new CapricornDBEventHandler()
+
+  /** @internal */
+  isClosed: boolean = false
+
+  public get isOpen(): boolean {
+    return !this.isClosed
+  }
 
   public get event() {
     return this.eventHandler
@@ -163,5 +169,21 @@ export class CapricornDB<Service extends CapricornDBCoreService = CapricornDBCor
       collectionName,
       capricorn: this
     })
+  }
+
+  /**
+   * Closes the database connection and releases any associated resources. This method should be called when the database is no longer needed to ensure proper cleanup.
+   * @returns A promise that resolves when the database connection has been closed.
+   * @throws DatabaseError if there is an error closing the database connection.
+   * @example
+   * await capricorn.close()
+   */
+  public async close() {
+    if (this.isClosed) {
+      return
+    }
+    this.isClosed = true
+    await this.service.close()
+    return
   }
 }
