@@ -1,5 +1,5 @@
 import { CapricornDB, CapricornDBCollection, CapricornDocument, CollectionName } from '@janwuesten/capricorndb-core'
-import { useEffect } from 'react'
+import { useEffect, useRef } from 'react'
 
 export type UseCollectionEventListener<T extends CapricornDocument> = (collection: CapricornDBCollection<T>) => Promise<void>
 
@@ -11,10 +11,13 @@ export type UseCollectionEventListener<T extends CapricornDocument> = (collectio
  * @param dependencies An optional array of dependencies that will trigger the effect to re-run when they change.
  */
 export const useCollection = <T extends CapricornDocument>(collectionName: CollectionName, listener: UseCollectionEventListener<T>, capricorn: CapricornDB, dependencies: any[] = []) => {
+  const listenerRef = useRef(listener)
+  listenerRef.current = listener
+
   useEffect(() => {
     const collection = capricorn.collection<T>(collectionName)
     const onRefresh = () => {
-      listener(collection)
+      listenerRef.current(collection)
     }
     const deletedListener = collection.event.documentDeleted.on(onRefresh)
     const insertedListener = collection.event.documentInserted.on(onRefresh)
@@ -25,5 +28,6 @@ export const useCollection = <T extends CapricornDocument>(collectionName: Colle
       insertedListener()
       updatedListener()
     }
-  }, [capricorn, collectionName, listener, ...dependencies])
+    // eslint-disable-next-line react-hooks/exhaustive-deps
+  }, [capricorn, collectionName, ...dependencies])
 }
