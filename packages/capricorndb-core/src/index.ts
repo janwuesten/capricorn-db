@@ -4,6 +4,7 @@ export * from '@/classes/query'
 export * from '@/classes/transaction'
 export * from '@/classes/capricorn'
 export * from '@/classes/instance'
+export * from '@/classes/queue'
 
 export * from '@/types/filter'
 export * from '@/types/document'
