@@ -355,6 +355,90 @@ export class CapricornDBCollection<T extends CapricornDocument> {
   }
 
   /**
+   * Updates a single document that matches the specified filter, or inserts a new document if no matching document is found. If the filter matches multiple documents, only one of them will be updated.
+   * @param filter The filter criteria to find the document to update. Can be a simple object with field-value pairs or a more complex CapricornDBQuery.
+   * @param update An object containing the fields to be updated (or the values for the newly inserted document) and their new values.
+   * @returns A promise that resolves to the updated or newly inserted document with its ID.
+   * @throws ImmutableIDUpdateError if the update data contains an attempt to change the document's ID.
+   * @throws InvalidQueryError if the provided filter is invalid.
+   * @throws DatabaseError if there is an error upserting the document.
+   * @notice When no matching document is found and the filter is a plain object, its field-value pairs are merged with the update to build the inserted document. When the filter is a CapricornDBQuery, only the update is used for the inserted document.
+   * @example
+   * const document = await collection.upsertOne({ name: 'Alice' }, { age: 31 })
+   * console.log(document._id) // Logs the ID of the updated or inserted document
+   */
+  public async upsertOne(filter: CapricornDBFilter<T>, update: Partial<T & { _id?: string }>): Promise<WithCapricornID<T>> {
+    const isInsideTransaction = this._capricorn.hasActiveTransaction
+    try {
+      if (!isInsideTransaction) {
+        await this._capricorn.service.startTransaction()
+      }
+      const existingDocument = await this.findOne(filter)
+      let result: WithCapricornID<T>
+      if (existingDocument) {
+        result = await this.updateOne(filter, update)
+      } else {
+        const base = filter instanceof CapricornDBQuery ? {} : { ...filter }
+        result = await this.insertOne({ ...base, ...update } as T & { _id?: string })
+      }
+      if (!isInsideTransaction) {
+        await this._capricorn.service.commitTransaction()
+      }
+      return result
+    } catch (err) {
+      if (!isInsideTransaction) {
+        await this._capricorn.service.rollbackTransaction()
+      }
+      if (CapricornDBError.isCapricornDBError(err)) {
+        throw err
+      }
+      throw new DatabaseError('Failed to upsert document.', err)
+    }
+  }
+
+  /**
+   * Updates all documents that match the specified filter, or inserts a new document if no matching documents are found.
+   * @param filter The filter criteria to find the documents to update. Can be a simple object with field-value pairs or a more complex CapricornDBQuery.
+   * @param update An object containing the fields to be updated (or the values for the newly inserted document) and their new values.
+   * @returns A promise that resolves to an array of the updated or newly inserted documents with their IDs.
+   * @throws ImmutableIDUpdateError if the update data contains an attempt to change any document's ID.
+   * @throws InvalidQueryError if the provided filter is invalid.
+   * @throws DatabaseError if there is an error upserting the documents.
+   * @notice When no matching documents are found and the filter is a plain object, its field-value pairs are merged with the update to build the inserted document. When the filter is a CapricornDBQuery, only the update is used for the inserted document.
+   * @example
+   * const documents = await collection.upsertMany({ active: true }, { verified: true })
+   * console.log(documents.length) // Logs the number of updated or inserted documents
+   */
+  public async upsertMany(filter: CapricornDBFilter<T>, update: Partial<T & { _id?: string }>): Promise<WithCapricornID<T>[]> {
+    const isInsideTransaction = this._capricorn.hasActiveTransaction
+    try {
+      if (!isInsideTransaction) {
+        await this._capricorn.service.startTransaction()
+      }
+      const updatedDocuments = await this.updateMany(filter, update)
+      let result: WithCapricornID<T>[]
+      if (updatedDocuments.length > 0) {
+        result = updatedDocuments
+      } else {
+        const base = filter instanceof CapricornDBQuery ? {} : { ...filter }
+        result = [await this.insertOne({ ...base, ...update } as T & { _id?: string })]
+      }
+      if (!isInsideTransaction) {
+        await this._capricorn.service.commitTransaction()
+      }
+      return result
+    } catch (err) {
+      if (!isInsideTransaction) {
+        await this._capricorn.service.rollbackTransaction()
+      }
+      if (CapricornDBError.isCapricornDBError(err)) {
+        throw err
+      }
+      throw new DatabaseError('Failed to upsert documents.', err)
+    }
+  }
+
+  /**
    * Deletes a single document from the collection that matches the specified filter. The document to be deleted is determined by the filter criteria. If the filter matches multiple documents, only one of them will be deleted.
    * @param filter The filter criteria to find the document to delete. Can be a simple object with field-value pairs or a more complex CapricornDBQuery.
    * @param options Optional settings for the delete operation. If `returnDocument` is set to true, the deleted document will be returned.
