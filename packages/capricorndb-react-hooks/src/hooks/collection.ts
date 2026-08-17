@@ -1,21 +1,19 @@
-import { CapricornDB, CapricornDBCollection, CapricornDocument, CollectionName } from '@janwuesten/capricorndb-core'
+import { CapricornDBCollection, CapricornDocument } from '@janwuesten/capricorndb-core'
 import { useEffect, useRef } from 'react'
 
 export type UseCollectionEventListener<T extends CapricornDocument> = (collection: CapricornDBCollection<T>) => Promise<void>
 
 /**
  * React hook to listen to changes in a CapricornDB collection and trigger a listener function when the collection is modified (document inserted, updated, or deleted).
- * @param collectionName The name of the collection to listen to.
+ * @param collection The CapricornDB collection to listen to.
  * @param listener A callback function that will be called with the collection whenever it is modified.
- * @param capricorn An instance of the CapricornDB database.
  * @param dependencies An optional array of dependencies that will trigger the effect to re-run when they change.
  */
-export const useCollection = <T extends CapricornDocument>(collectionName: CollectionName, listener: UseCollectionEventListener<T>, capricorn: CapricornDB, dependencies: any[] = []) => {
+export const useCollection = <T extends CapricornDocument>(collection: CapricornDBCollection<T>, listener: UseCollectionEventListener<T>, dependencies: any[] = []) => {
   const listenerRef = useRef(listener)
   listenerRef.current = listener
 
   useEffect(() => {
-    const collection = capricorn.collection<T>(collectionName)
     const onRefresh = () => {
       listenerRef.current(collection)
     }
@@ -28,6 +26,5 @@ export const useCollection = <T extends CapricornDocument>(collectionName: Colle
       insertedListener()
       updatedListener()
     }
-    // eslint-disable-next-line react-hooks/exhaustive-deps
-  }, [capricorn, collectionName, ...dependencies])
+  }, [collection, ...dependencies])
 }
