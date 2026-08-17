@@ -47,7 +47,7 @@ export class CapricornDBCollection<T extends CapricornDocument> {
    * const newDocument = await collection.insertOne({ name: 'Alice', age: 30 })
    * console.log(newDocument._id) // Logs the generated ID of the inserted document
    */
-  public async insertOne(document: T & { _id?: string }): Promise<WithCapricornID<T>> {
+  public async insertOne(document: T & { _id?: string }, options?: { ignoreEvents: boolean }): Promise<WithCapricornID<T>> {
     await this._createCollection()
     try {
       let id: string | null = null
@@ -63,7 +63,9 @@ export class CapricornDBCollection<T extends CapricornDocument> {
       await this._capricorn.service.insert(`
         INSERT INTO "${this._databaseTableName}" (id, document) VALUES (?, jsonb(?))
       `, [id, JSON.stringify(document)])
-      this._capricorn.event.documentInserted.trigger(this._collectionName, [documentWithID])
+      if (!options?.ignoreEvents) {
+        this._capricorn.event.documentInserted.trigger(this._collectionName, [documentWithID])
+      }
       return documentWithID
     } catch (err) {
       if (CapricornDBError.isCapricornDBError(err)) {
@@ -100,7 +102,7 @@ export class CapricornDBCollection<T extends CapricornDocument> {
       }
       const addedDocuments: WithCapricornID<T>[] = []
       for (const document of documents) {
-        const addedDocument = await this.insertOne(document)
+        const addedDocument = await this.insertOne(document, { ignoreEvents: true })
         addedDocuments.push(addedDocument)
       }
       if (!isInsideeTransaction) {
