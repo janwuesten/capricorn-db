@@ -13,18 +13,22 @@ export const useCollection = <T extends CapricornDocument>(collection: Capricorn
   const listenerRef = useRef(listener)
   listenerRef.current = listener
 
+  const collectionRef = useRef(collection)
+  collectionRef.current = collection
+
   useEffect(() => {
+    const activeCollection = collectionRef.current
     const onRefresh = () => {
-      listenerRef.current(collection)
+      listenerRef.current(activeCollection)
     }
-    const deletedListener = collection.event.documentDeleted.on(onRefresh)
-    const insertedListener = collection.event.documentInserted.on(onRefresh)
-    const updatedListener = collection.event.documentUpdated.on(onRefresh)
+    const deletedListener = activeCollection.event.documentDeleted.on(onRefresh)
+    const insertedListener = activeCollection.event.documentInserted.on(onRefresh)
+    const updatedListener = activeCollection.event.documentUpdated.on(onRefresh)
     onRefresh()
     return () => {
       deletedListener()
       insertedListener()
       updatedListener()
     }
-  }, [collection, ...dependencies])
+  }, [collection.name, ...dependencies])
 }

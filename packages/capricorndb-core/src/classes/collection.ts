@@ -19,6 +19,13 @@ export class CapricornDBCollection<T extends CapricornDocument> {
     return `c.${this._collectionName}`
   }
 
+  /**
+   * The name of the collection.
+   */
+  public get name(): CollectionName {
+    return this._collectionName
+  }
+
   /* @internal */
   constructor(options: { collectionName: CollectionName, capricorn: CapricornDB }) {
     if (!CapricornDBCollection.isValidName(options.collectionName)) {
