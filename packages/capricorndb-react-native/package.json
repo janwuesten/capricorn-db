@@ -1,6 +1,6 @@
 {
   "name": "@janwuesten/capricorndb-react-native",
-  "version": "0.2.4",
+  "version": "0.2.5",
   "author": "Jan Wüsten",
   "description": "CapricornDB for React Native runtimes.",
   "repository": {
