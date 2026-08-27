@@ -24,7 +24,7 @@ export const createCapricornDB = async (options: CapricornDBCreateOptions) => {
     allowExtension: true
   })
   const capricorn = await CapricornDB.create({
-    service: new CapricornDBService(database)
+    service: new CapricornDBService(database, options)
   })
   return capricorn
 }

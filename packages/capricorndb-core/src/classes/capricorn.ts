@@ -186,4 +186,11 @@ export class CapricornDB<Service extends CapricornDBCoreService = CapricornDBCor
     await this.service.close()
     return
   }
+
+  public async deleteDatabase() {
+    if (!this.isClosed) {
+      await this.close()
+    }
+    await this.service.deleteDatabase()
+  }
 }

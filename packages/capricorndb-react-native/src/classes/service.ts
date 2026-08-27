@@ -121,4 +121,13 @@ export class CapricornDBService extends CapricornDBCoreService {
       }
     })
   }
+  public async deleteDatabase(): Promise<void> {
+    return this.queue.enqueue(async () => {
+      try {
+        await this.database.delete()
+      } catch (error) {
+        throw new Error(error instanceof Error ? error.message : String(error))
+      }
+    })
+  }
 }

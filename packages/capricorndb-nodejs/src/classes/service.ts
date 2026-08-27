@@ -1,6 +1,8 @@
 import { CapricornDBCoreService, CapricornDBQueue, CapricornDocumentID, DatabaseError } from '@janwuesten/capricorndb-core'
 import { DatabaseSync, SQLInputValue } from 'node:sqlite'
 import { randomBytes } from 'node:crypto'
+import { unlinkSync } from 'node:fs'
+import { CapricornDBCreateOptions } from '..'
 
 /**
  * CapricornDBService is a service class that implements the CapricornDBCoreService interface for the Node.js environment.
@@ -8,10 +10,12 @@ import { randomBytes } from 'node:crypto'
  */
 export class CapricornDBService extends CapricornDBCoreService {
   private database: DatabaseSync
+  private options: CapricornDBCreateOptions
   private queue: CapricornDBQueue = new CapricornDBQueue()
 
-  constructor(database: DatabaseSync) {
+  constructor(database: DatabaseSync, options: CapricornDBCreateOptions) {
     super()
+    this.options = options
     this.database = database
   }
   public async startTransaction(): Promise<void> {
@@ -120,6 +124,16 @@ export class CapricornDBService extends CapricornDBCoreService {
         this.database.close()
       } catch (error) {
         throw new DatabaseError('Failed to close the database connection.', error)
+      }
+    })
+  }
+  public async deleteDatabase(): Promise<void> {
+    return this.queue.enqueue(async () => {
+      try {
+        const path = this.options.path
+        unlinkSync(path)
+      } catch (error) {
+        throw new DatabaseError('Failed to delete the database file.', error)
       }
     })
   }
