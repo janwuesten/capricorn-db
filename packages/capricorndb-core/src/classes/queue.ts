@@ -1,9 +1,29 @@
 export class CapricornDBQueue {
   private queue: Promise<unknown> = Promise.resolve()
+  private pending = 0
   public enqueue<T>(operation: () => T): Promise<T> {
+    this.pending++
     const result = this.queue.then(() => operation())
-    this.queue = result.catch(() => undefined)
+    this.queue = result.catch(() => undefined).finally(() => this.pending--)
     return result
+  }
+
+  /**
+   * Indicates whether the queue has finished all work.
+   * @returns True if there are no pending or running operations, false otherwise.
+   */
+  public isCompleted(): boolean {
+    return this.pending === 0
+  }
+
+  /**
+   * Waits until all pending and running operations in the queue have settled.
+   * @returns A promise that resolves once the queue is completed.
+   */
+  public async waitForCompletion(): Promise<void> {
+    while (this.pending > 0) {
+      await this.queue.catch(() => undefined)
+    }
   }
 }
 
